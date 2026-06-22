@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getOne, getAll, runQuery } = require('../config/db.js');
 const authenticateToken = require('../middleware/auth.js');
+const bcrypt = require('bcryptjs');
 
 // Apply authentication middleware to all routes in this router
 router.use(authenticateToken);
@@ -31,11 +32,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST - Create a new record (Simplified boilerplate, replace columns as needed)
+// POST - Create a new record
 router.post('/', async (req, res) => {
   try {
     const { name, password, role, remember_token, last_login, created_at, updated_at } = req.body;
-    const result = await runQuery('INSERT INTO "user" (name, password, role, remember_token, last_login, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', [req.body.name, req.body.password, req.body.role, req.body.remember_token, req.body.last_login, req.body.created_at, req.body.updated_at]);
+    
+    // Hash the password if provided
+    let hashedPassword = password;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+    }
+
+    const result = await runQuery(
+      'INSERT INTO "USER" (name, password, role, remember_token, last_login, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', 
+      [name, hashedPassword, role, remember_token, last_login, created_at, updated_at]
+    );
     res.status(201).json({ status: 'success', data: result.rows[0] });
   } catch (error) {
     console.error('Error inserting data into USER:', error);
@@ -46,15 +58,44 @@ router.post('/', async (req, res) => {
 // PUT - Update a record by ID
 router.put('/:id', async (req, res) => {
   try {
-    const { name, password, role, remember_token, last_login, created_at, updated_at } = req.body;
-    const result = await runQuery('UPDATE "user" SET name = $1, password = $2, role = $3, remember_token = $4, last_login = $5, created_at = $6, updated_at = $7 WHERE id = $8 RETURNING *', [req.body.name, req.body.password, req.body.role, req.body.remember_token, req.body.last_login, req.body.created_at, req.body.updated_at, req.params.id]);
-    if (result.rowCount === 0) return res.status(404).json({ status: 'error', error: 'Record not found' });
+    const fields = req.body;
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+
+    for (const [key, value] of Object.entries(fields)) {
+      if (key === 'password' && value) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(value, salt);
+        updates.push(`password = $${paramIndex++}`);
+        params.push(hashedPassword);
+      } else if (key !== 'id') { // Don't allow updating ID
+        updates.push(`${key} = $${paramIndex++}`);
+        params.push(value);
+      }
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ status: 'error', error: 'No fields to update' });
+    }
+
+    const query = `UPDATE "USER" SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    params.push(req.params.id);
+
+    const result = await runQuery(query, params);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ status: 'error', error: 'Record not found' });
+    }
+    
     res.json({ status: 'success', data: result.rows[0] });
   } catch (error) {
     console.error('Error updating data in USER:', error);
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });
+
+
 
 // DELETE a record by ID
 router.delete('/:id', async (req, res) => {
@@ -69,5 +110,7 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });
+
+
 
 module.exports = router;

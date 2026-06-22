@@ -6,10 +6,19 @@ const authenticateToken = require('../middleware/auth.js');
 // Apply authentication middleware to all routes in this router
 router.use(authenticateToken);
 
-// GET all records
+// GET all records (handles optional user_id filtering)
 router.get('/', async (req, res) => {
   try {
-    const data = await getAll('SELECT * FROM "doctor"');
+    const { user_id } = req.query;
+    let query = 'SELECT * FROM "doctor"';
+    let params = [];
+    
+    if (user_id) {
+      query += ' WHERE user_id = $1';
+      params.push(user_id);
+    }
+    
+    const data = await getAll(query, params);
     res.json({ status: 'success', data });
   } catch (error) {
     console.error('Error fetching data from doctor:', error);
@@ -66,6 +75,22 @@ router.delete('/:id', async (req, res) => {
     res.json({ status: 'success', message: 'Record deleted successfully' });
   } catch (error) {
     console.error('Error deleting data from doctor:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// GET all courses assigned to a doctor
+router.get('/:id/courses', async (req, res) => {
+  try {
+    const query = `
+      SELECT * 
+      FROM Course 
+      WHERE Doctor_id = $1
+    `;
+    const data = await getAll(query, [req.params.id]);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching doctor courses:', error);
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });

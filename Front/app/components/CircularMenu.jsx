@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import '@/styles/CircularBottomNav.css';
@@ -10,11 +12,20 @@ const CircularMenu = () => {
   const [activeItem, setActiveItem] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
 
+  const getDocumentsHref = () => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('userRole');
+      if (role === 'student affairs') return '/documents/admin';
+      if (role === 'student') return '/documents/request';
+    }
+    return '/documents';
+  };
+
   const menuItems = [
     { name: 'Home',      icon: <HomeIcon size={35} />,          href: '/',           orbit: 'inner' },
     { name: 'Student',   icon: <GraduationIcon size={35} />,    href: '/student-page', orbit: 'inner' },
     { name: 'Library',   icon: <BooksIcon size={35} />,         href: '/library',    orbit: 'inner' },
-    { name: 'Documents', icon: <DocumentIcon size={35} />,      href: '/documents',  orbit: 'outer' },
+    { name: 'Documents', icon: <DocumentIcon size={35} />,      href: getDocumentsHref(),  orbit: 'outer' },
     { name: 'FAQ',       icon: <QuestionIcon size={35} />,      href: '/faq',        orbit: 'outer' },
     { name: 'News',      icon: <NewspaperIcon size={35} />,     href: '/news',       orbit: 'outer' },
     { name: 'GPS',       icon: <LocationIcon size={35} />,      href: '/gps',        orbit: 'outer' },

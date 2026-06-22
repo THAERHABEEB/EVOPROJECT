@@ -31,6 +31,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET grades for a specific student
+router.get('/student/:studentId', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        c.name as subject_name,
+        c.total_grade,
+        g.id, g.sup_grades, g.mid_grades, g.final_grades, g.letter_grades,
+        e.course_id
+      FROM "enrollments" e
+      JOIN "course" c ON e.course_id = c.id
+      LEFT JOIN "grade" g ON g.student_id = e.student_id AND g.course_id = e.course_id
+      WHERE e.student_id = $1
+    `;
+    const data = await getAll(query, [req.params.studentId]);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching student grades:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
 // POST - Create a new record (Simplified boilerplate, replace columns as needed)
 router.post('/', async (req, res) => {
   try {

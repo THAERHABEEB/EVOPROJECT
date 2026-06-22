@@ -3,16 +3,38 @@
 import { useState, useEffect } from 'react'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
+import api from '@/lib/api'
+import { departments, getYearsByDepartment, getSubjectsByYear } from '@/lib/roadmapData'
 
 export default function ControlPage() {
 
-  const [course, setCourse] = useState('web-applications')
-  const [year, setYear] = useState('second')
-  const [department, setDepartment] = useState('data-science')
-  const [dragOver, setDragOver] = useState(false)
+  const [department, setDepartment] = useState(departments[0]?.name || '')
+  const [year, setYear] = useState('')
+  const [course, setCourse] = useState('')
+
+  // Update year and course when department changes
+  useEffect(() => {
+    if (department) {
+      const years = getYearsByDepartment(department)
+      if (years.length > 0) {
+        setYear(years[0].id)
+      }
+    }
+  }, [department])
+
+  // Update course when year or department changes
+  useEffect(() => {
+    if (department && year) {
+      const subjects = getSubjectsByYear(department, year)
+      if (subjects.length > 0) {
+        setCourse(subjects[0].id)
+      }
+    }
+  }, [department, year])
+  const [tableData, setTableData] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState('')
-  const [uploadedFile, setUploadedFile] = useState(null)
-  const [tableData, setTableData] = useState(null) // { headers: [], rows: [] }
+  const [currentRecord, setCurrentRecord] = useState(null) // Stores metadata from upload_grades table
 
   // Load SheetJS from CDN once
   useEffect(() => {
@@ -22,68 +44,64 @@ export default function ControlPage() {
     document.head.appendChild(script)
   }, [])
 
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    setDragOver(true)
-  }
+  const handleSearch = async () => {
+    if (!course) return
+    setLoading(true)
+    setTableData(null)
+    setCurrentRecord(null)
+    setUploadStatus('Searching for grades...')
 
-  const handleDragLeave = () => setDragOver(false)
+    try {
+      // 1. Fetch metadata from upload_grades table
+      const response = await api.uploadGrades.getAll({ course_id: course })
+      if (!response.data || response.data.length === 0) {
+        setUploadStatus('No pending grades found for this course.')
+        setLoading(false)
+        return
+      }
 
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
-      processFile(file) 
-    } else {
-      setUploadStatus('Unsupported file — use XLSX or CSV')
+      const record = response.data[0] // Take the most recent/first one
+      setCurrentRecord(record)
+
+      // 2. Fetch CSV file from public directory
+      // Path format: /${folder}/${file_name}
+      const filePath = `/${record.folder}/${record.file_name}`
+      setUploadStatus(`Loading file: ${record.file_name}...`)
+
+      const fileResponse = await fetch(filePath)
+      if (!fileResponse.ok) throw new Error('Could not find the grade file in storage.')
+
+      const csvText = await fileResponse.text()
+
+      // 3. Parse CSV (Manual split as used before)
+      const lines = csvText.trim().split('\n').map((l) => l.split(',').map((c) => c.trim()))
+      const headers = lines[0]
+      const rows = lines.slice(1)
+
+      setTableData({ headers, rows })
+      setUploadStatus('')
+    } catch (error) {
+      console.error('Error fetching grades:', error)
+      setUploadStatus(error.message || 'Failed to fetch grades.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleFileInput = (e) => {
-    const file = e.target.files[0]
-    if (file) processFile(file)
-  }
-
-  const processFile = (file) => {
-    setUploadedFile(file)
-    setUploadStatus('Reading file...')
-    setTableData(null)
-
-    const reader = new FileReader()
-
-    if (file.name.endsWith('.csv')) {
-      reader.onload = (e) => {
-        const text = e.target.result
-        const lines = text.trim().split('\n').map((l) => l.split(',').map((c) => c.trim()))
-        const headers = lines[0]
-        const rows = lines.slice(1)
-        setTableData({ headers, rows })
-        setUploadStatus('File loaded!')
-        setTimeout(() => setUploadStatus(''), 2000)
-      }
-      reader.readAsText(file)
-    } else {
-      // Excel — use SheetJS
-      reader.onload = (e) => {
-        const waitForXLSX = () => {
-          if (!window.XLSX) {
-            setTimeout(waitForXLSX, 200)
-            return
-          }
-          const data = new Uint8Array(e.target.result)
-          const workbook = window.XLSX.read(data, { type: 'array' })
-          const sheet = workbook.Sheets[workbook.SheetNames[0]]
-          const json = window.XLSX.utils.sheet_to_json(sheet, { header: 1 })
-          const headers = json[0]
-          const rows = json.slice(1)
-          setTableData({ headers, rows })
-          setUploadStatus('File loaded!')
-          setTimeout(() => setUploadStatus(''), 2000)
-        }
-        waitForXLSX()
-      }
-      reader.readAsArrayBuffer(file)
+  const handleStatusUpdate = async (newStatus) => {
+    if (!currentRecord) return
+    try {
+      setUploadStatus(`Updating status to ${newStatus}...`)
+      await api.uploadGrades.update(currentRecord.id, { 
+        ...currentRecord,
+        status: newStatus 
+      })
+      setCurrentRecord(prev => ({ ...prev, status: newStatus }))
+      setUploadStatus(`Grades ${newStatus} successfully!`)
+      setTimeout(() => setUploadStatus(''), 3000)
+    } catch (error) {
+      console.error('Error updating status:', error)
+      setUploadStatus('Failed to update status.')
     }
   }
 
@@ -123,75 +141,49 @@ export default function ControlPage() {
           marginBottom: '30px',
           flexWrap: 'wrap',
         }}>
-          <select value={course} onChange={(e) => setCourse(e.target.value)} style={dropdownStyle}>
-            <option>Web Applications</option>
-            <option>Data Structures</option>
-            <option>Algorithms</option>
+          <select value={department} onChange={(e) => setDepartment(e.target.value)} style={dropdownStyle}>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.name}>{dept.name}</option>
+            ))}
           </select>
 
           <select value={year} onChange={(e) => setYear(e.target.value)} style={dropdownStyle}>
-            <option>First</option>
-            <option>Second</option>
-            <option>Third</option>
-            <option>Fourth</option>
+            {getYearsByDepartment(department).map((y) => (
+              <option key={y.id} value={y.id}>{y.label}</option>
+            ))}
           </select>
 
-          <select value={department} onChange={(e) => setDepartment(e.target.value)} style={dropdownStyle}>
-            <option>Computer Science</option>
-            <option>Data Science</option>
-            <option>Information Technology</option>
+          <select value={course} onChange={(e) => setCourse(e.target.value)} style={dropdownStyle}>
+            {getSubjectsByYear(department, year).map((subject) => (
+              <option key={subject.id} value={subject.id}>{subject.name}</option>
+            ))}
           </select>
-        </div>
-
-        {/* Upload Area */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          style={{
-            border: '2px dashed #caa13c',
-            padding: '40px',
-            borderRadius: '15px',
-            textAlign: 'center',
-            background: dragOver ? 'rgba(255,255,255,0.4)' : 'transparent',
-            transition: '0.3s',
-          }}
-        >
-          <h3 style={{ color: '#0b3a6e' }}>Drag &amp; Drop Grades File</h3>
-          <p style={{ color: '#333', marginBottom: '10px' }}>Supported: XLSX / CSV</p>
-
-          <input
-            type="file"
-            accept=".xlsx,.csv"
-            onChange={handleFileInput}
-            style={{ display: 'none' }}
-            id="fileInput"
-          />
-
-          <button
-            onClick={() => document.getElementById('fileInput').click()}
+          <button 
+            onClick={handleSearch}
+            disabled={loading}
             style={{
-              marginTop: '10px',
               padding: '12px 30px',
               border: 'none',
-              borderRadius: '25px',
-              background: 'linear-gradient(90deg,#caa13c,#e4bd63)',
+              borderRadius: '10px',
+              background: 'linear-gradient(90deg,#0b3a6e,#1a5fa8)',
               color: 'white',
               fontWeight: 'bold',
               cursor: 'pointer',
-              fontSize: '15px',
+              minWidth: '150px'
             }}
           >
-            Choose File
+            {loading ? 'Searching...' : '🔍 Search Grades'}
           </button>
-
-          {uploadStatus && (
-            <p style={{ marginTop: '15px', color: '#0b3a6e', fontWeight: 'bold' }}>{uploadStatus}</p>
-          )}
         </div>
 
-        {/* File Info Bar */}
-        {uploadedFile && (
+        {uploadStatus && (
+          <p style={{ textAlign: 'center', color: '#0b3a6e', fontWeight: 'bold', marginBottom: '20px' }}>
+            {uploadStatus}
+          </p>
+        )}
+
+        {/* File Info & Status Bar */}
+        {currentRecord && (
           <div style={{
             marginTop: '20px',
             padding: '14px 20px',
@@ -200,20 +192,51 @@ export default function ControlPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
+            flexWrap: 'wrap'
           }}>
-            <span style={{ fontSize: '22px' }}>
-              {uploadedFile.name.endsWith('.csv') ? '📄' : '📊'}
-            </span>
+            <span style={{ fontSize: '22px' }}>📄</span>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontWeight: 'bold', color: '#0b3a6e' }}>{uploadedFile.name}</p>
+              <p style={{ margin: 0, fontWeight: 'bold', color: '#0b3a6e' }}>{currentRecord.file_name}</p>
               <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-                {(uploadedFile.size / 1024).toFixed(1)} KB
+                Status: <span style={{ 
+                  fontWeight: 'bold', 
+                  color: currentRecord.status === 'Approved' ? '#27ae60' : 
+                         currentRecord.status === 'Rejected' ? '#c0392b' : '#f39c12' 
+                }}>{currentRecord.status}</span>
               </p>
             </div>
-            <button
-              onClick={() => { setUploadedFile(null); setTableData(null) }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#aaa' }}
-            >✕</button>
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => handleStatusUpdate('Approved')}
+                disabled={currentRecord.status === 'Approved'}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: '#27ae60',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  opacity: currentRecord.status === 'Approved' ? 0.6 : 1
+                }}
+              >✓ Approve</button>
+              
+              <button
+                onClick={() => handleStatusUpdate('Rejected')}
+                disabled={currentRecord.status === 'Rejected'}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: '#c0392b',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  opacity: currentRecord.status === 'Rejected' ? 0.6 : 1
+                }}
+              >✕ Reject</button>
+            </div>
           </div>
         )}
 

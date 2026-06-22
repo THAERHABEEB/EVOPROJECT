@@ -31,6 +31,20 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET student by user_id
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const data = await getOne('SELECT * FROM "students" WHERE user_id = $1', [req.params.userId]);
+    if (!data) {
+      return res.status(404).json({ status: 'error', error: 'Student profile not found for this user' });
+    }
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching student by user_id:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
 // POST - Create a new record (Simplified boilerplate, replace columns as needed)
 router.post('/', async (req, res) => {
   try {
@@ -52,6 +66,36 @@ router.put('/:id', async (req, res) => {
     res.json({ status: 'success', data: result.rows[0] });
   } catch (error) {
     console.error('Error updating data in students:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// PUT - Update specialization for a student (first-time only enforced by frontend)
+router.put('/:id/specialization', async (req, res) => {
+  try {
+    const { specialization } = req.body;
+    const result = await runQuery('UPDATE "students" SET specialization = $1 WHERE id = $2 RETURNING *', [specialization, req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ status: 'error', error: 'Student not found' });
+    res.json({ status: 'success', data: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating student specialization:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// GET - Academic roadmap (8 semesters) with progress based on current_semester
+router.get('/:id/roadmap', async (req, res) => {
+  try {
+    const student = await getOne('SELECT id, current_semester, specialization FROM "students" WHERE id = $1', [req.params.id]);
+    if (!student) return res.status(404).json({ status: 'error', error: 'Student not found' });
+    const current = Number(student.current_semester) || 0;
+    const semesters = [];
+    for (let i = 1; i <= 8; i++) {
+      semesters.push({ semester: i, completed: i <= current });
+    }
+    res.json({ status: 'success', data: { specialization: student.specialization || null, current_semester: current, semesters } });
+  } catch (error) {
+    console.error('Error fetching roadmap:', error);
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });

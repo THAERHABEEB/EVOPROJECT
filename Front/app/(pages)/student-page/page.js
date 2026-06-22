@@ -19,6 +19,7 @@ import {
   ChartBarIcon, VideoIcon, TargetIcon, TrendUpIcon,
   CheckCircleIcon, MapIcon, CreditCardIcon
 } from '@/app/components/Icons'
+import { api } from '@/lib/api'
 
 export default function StudentPage() {
   const router = useRouter()
@@ -29,22 +30,32 @@ export default function StudentPage() {
   const [isClient, setIsClient] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
 
-  // TODO: Replace with actual API call
   const fetchStudentInfo = async () => {
     try {
-      // const response = await fetch('/api/student/info')
-      // const data = await response.json()
-      // setStudentInfo(data)
-      
-      // Mock data - will be replaced with API
-      setStudentInfo({
-        name: 'Abdulrahman Reda Kamel',
-        specialty: 'Data Science - Year 2',
-        studentId: '247818',
-        phone: '0155984249',
-        address: '10th of Ramadan',
-        image: 'Pics/student.jpg'
-      })
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        console.error('No userId found in localStorage')
+        router.push('/login')
+        return
+      }
+
+      const res = await api.students.getByUserId(userId)
+      if (res.status === 'success' && res.data) {
+        const data = res.data
+        setStudentInfo({
+          name: data.name,
+          specialty: `${data.department || ''}${data.year_level ? ` - Year ${data.year_level}` : ''}`,
+          studentId: data.id,
+          phone: data.phone,
+          address: data.address,
+          image: data.photo || 'Pics/student.jpg'
+        })
+        // If specialization is not set, send student to selection page (first-time only)
+        if (!data.specialization) {
+          router.push('/student-page/select-specialization')
+          return
+        }
+      }
     } catch (error) {
       console.error('Error fetching student info:', error)
     } finally {
@@ -66,10 +77,10 @@ export default function StudentPage() {
         setSidebarOpen(false)
       }
     }
-    
+
     // Set initial state on mount
     handleResize()
-    
+
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -77,27 +88,29 @@ export default function StudentPage() {
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       localStorage.removeItem('studentToken')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('token')
       sessionStorage.clear()
       router.push('/login')
     }
   }
 
   const navItems = [
-    { label: 'Grades',      id: 'grades',      icon: <ChartBarIcon size={18} /> },
-    { label: 'Lectures',    id: 'lectures',    icon: <VideoIcon size={18} /> },
-    { label: 'Activities',  id: 'activities',  icon: <TargetIcon size={18} /> },
-    { label: 'Statistics',  id: 'statistics',  icon: <TrendUpIcon size={18} /> },
+    { label: 'Grades', id: 'grades', icon: <ChartBarIcon size={18} /> },
+    { label: 'Lectures', id: 'lectures', icon: <VideoIcon size={18} /> },
+    { label: 'Activities', id: 'activities', icon: <TargetIcon size={18} /> },
+    { label: 'Statistics', id: 'statistics', icon: <TrendUpIcon size={18} /> },
     { label: 'Assignments', id: 'assignments', icon: <CheckCircleIcon size={18} /> },
-    { label: 'Roadmap',     id: 'roadmap',     icon: <MapIcon size={18} /> },
-    { label: 'Payments',    id: 'payments',    icon: <CreditCardIcon size={18} /> },
+    { label: 'Roadmap', id: 'roadmap', icon: <MapIcon size={18} /> },
+    { label: 'Payments', id: 'payments', icon: <CreditCardIcon size={18} /> },
   ]
 
   const renderComponent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'profile':
         return <ProfileComponent studentInfo={studentInfo} />
       case 'grades':
-        return <GradesComponent />
+        return <GradesComponent studentId={studentInfo?.studentId} />
       case 'lectures':
         return <LecturesComponent />
       case 'activities':
@@ -117,7 +130,7 @@ export default function StudentPage() {
 
   return (
     <>
-      <Header 
+      <Header
         onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={true}
         title="Student Portal"
@@ -125,7 +138,7 @@ export default function StudentPage() {
       <div id="cursor-glow"></div>
 
       {/* Sidebar Overlay - Mobile Only */}
-      
+
 
       {/* Desktop Layout */}
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 70px)', width: '100%' }}>
@@ -154,10 +167,10 @@ export default function StudentPage() {
           >
             <img src={studentInfo?.image || 'Pics/student.jpg'} alt="Student" />
             <div>
-              <strong>{studentInfo?.name || 'Abdulrahman Reda Kamel'}</strong><br/>
+              <strong>{studentInfo?.name || 'Abdulrahman Reda Kamel'}</strong><br />
               <small>{studentInfo?.specialty || 'Data Science - Year 2'}</small>
             </div>
-            </div>
+          </div>
 
           {navItems.map((item) => (
             <button
@@ -186,7 +199,7 @@ export default function StudentPage() {
             </button>
           ))}
           <button
-            onClick={(e) => { 
+            onClick={(e) => {
               e.preventDefault()
               handleLogout()
             }}
@@ -285,7 +298,7 @@ export default function StudentPage() {
         }
       `}</style>
 
-     <CircularMenu />
+      <CircularMenu />
     </>
   )
 }

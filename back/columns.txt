@@ -1,0 +1,45 @@
+
+--- Columns in "upload_grades" ---
+id
+course_id
+doctor_id
+control_id
+spec_id
+year_level
+upload_date
+approval
+file_name
+folder
+status
+
+--- Columns in "course" ---
+doctor_id
+Doctor_id
+id
+credit_hours
+specialization_id
+year_level
+name
+description
+
+--- Columns in "control" ---
+id
+user_id
+code
+permission
+
+--- Columns in "specialization" ---
+id
+name
+code
+description
+
+--- Columns in "grade" ---
+id
+student_id
+course_id
+semester_id
+mid_grades
+final_grades
+sup_grades
+letter_grades

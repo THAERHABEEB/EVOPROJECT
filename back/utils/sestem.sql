@@ -1,290 +1,285 @@
-CREATE TABLE USER(
-ID INT AUTO_INCREMENT PRIMARY KEY,
-name VARCHAR(100) NOT NULL,
-password VARCHAR(255) NOT NULL,
-role VARCHAR(50),
-remember_token VARCHAR(255),
-last_login DATETIME,
-created_at DATETIME,
-updated_at DATETIME
+CREATE TABLE "USER" (
+    ID SERIAL PRIMARY KEY,
+    NAME VARCHAR(255) NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Role VARCHAR(50),
+    Remember_token VARCHAR(255),
+    LastLogin TIMESTAMP,
+    Created_at TIMESTAMP,
+    Updated_in TIMESTAMP
 );
 
-CREATE TABLE Admin(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT,
-permission TEXT,
-created_date DATETIME,
-code VARCHAR(50) UNIQUE NOT NULL,
-FOREIGN KEY (user_id) REFERENCES users(id)
+CREATE TABLE Students (
+    ID SERIAL PRIMARY KEY,
+    CODE VARCHAR(50) UNIQUE NOT NULL,
+    NAME VARCHAR(255) NOT NULL,
+    USER_ID INT UNIQUE,
+    Phone VARCHAR(20),
+    Address VARCHAR(255),
+    Department VARCHAR(100),
+    Photo VARCHAR(255),
+    Date_of_Birth DATE,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    Age INT,
+    Current_Semester VARCHAR(50),
+    Year_level INT,
+    Status VARCHAR(50),
+    FOREIGN KEY (USER_ID) REFERENCES "USER"(ID)
 );
 
-CREATE TABLE Control(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT,
-grade_id INT,
-permission TEXT,
-code VARCHAR(50) UNIQUE NOT NULL,
-FOREIGN KEY (user_id) REFERENCES users(id),
-FOREIGN KEY (Grade_id) REFERENCES Grade(ID)
+CREATE TABLE Doctor (
+    ID SERIAL PRIMARY KEY,
+    NAME VARCHAR(255) NOT NULL,
+    USER_ID INT UNIQUE,
+    Department VARCHAR(100),
+    OfficeLocation VARCHAR(255),
+    qualification VARCHAR(255),
+    Photo VARCHAR(255),
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    FOREIGN KEY (USER_ID) REFERENCES "USER"(ID)
 );
 
-CREATE TABLE Students(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT,
-name VARCHAR(100) NOT NULL,
-code VARCHAR(50) UNIQUE NOT NULL,
-phone VARCHAR(20),
-address VARCHAR(200),
-department VARCHAR(100),
-photo VARCHAR(255),
-date_of_birth DATE,
-age INT,
-email VARCHAR(100) UNIQUE NOT NULL,
-Age INT,
-status VARCHAR(20),
-current_semester VARCHAR(50),
-year_level INT,
-FOREIGN KEY (user_id) REFERENCES users(id)
+CREATE TABLE Admin (
+    ID SERIAL PRIMARY KEY,
+    USER_id INT UNIQUE,
+    Code VARCHAR(50) UNIQUE NOT NULL,
+    Created_date TIMESTAMP,
+    Permission TEXT,
+    FOREIGN KEY (USER_id) REFERENCES "USER"(ID)
 );
 
-CREATE TABLE Doctor(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT UNIQUE,
-name VARCHAR(200) NOT NULL,
-department VARCHAR(100),
-qualification VARCHAR(200),
-officeLocation VARCHAR(100),
-email VARCHAR(100) UNIQUE NOT NULL,
-photo VARCHAR(255),
-rating FLOAT,
-FOREIGN KEY (user_id) REFERENCES users(id)
+CREATE TABLE Student_Affairs (
+    ID SERIAL PRIMARY KEY,
+    USER_ID INT UNIQUE,
+    CODE VARCHAR(50) UNIQUE NOT NULL,
+    Responsibilities TEXT,
+    FOREIGN KEY (USER_ID) REFERENCES "USER"(ID)
 );
 
-CREATE TABLE Building(
-id INT AUTO_INCREMENT PRIMARY KEY,
-building_loc VARCHAR(100),
-room_num VARCHAR(20) UNIQUE NOT NULL
+CREATE TABLE Specialization (
+    ID SERIAL PRIMARY KEY,
+    NAME VARCHAR(255) NOT NULL,
+    CODE VARCHAR(50) UNIQUE NOT NULL,
+    Description TEXT
 );
 
-CREATE TABLE Specialization(
-id INT AUTO_INCREMENT PRIMARY KEY,
-name VARCHAR(100) NOT NULL,
-code VARCHAR(50) UNIQUE NOT NULL,
-description TEXT
-);
-
-CREATE TABLE Study_plan(
-id INT AUTO_INCREMENT PRIMARY KEY,
-spec_id INT,
-year_name VARCHAR(150),
-model VARCHAR(50),
-FOREIGN KEY (spec_id) REFERENCES specialization(id)
-);
-
-CREATE TABLE Semesters(
-id INT AUTO_INCREMENT PRIMARY KEY,
-spec_id INT,
-name VARCHAR(100) NOT NULL,
-description TEXT,
-start_date DATE,
-end_date DATE,
-build_id INT,
-FOREIGN KEY (spec_id) REFERENCES specialization(id),
-FOREIGN KEY (build_id) REFERENCES building(id)
-);
-
-CREATE TABLE Course(
-id INT AUTO_INCREMENT PRIMARY KEY,
-name VARCHAR(150) NOT NULL,
-description TEXT,
-credit_hours INT,
-specialization_id INT,
-doctor_id INT,
-year_level INT,
-FOREIGN KEY (specialization_id) REFERENCES specialization(id),
-FOREIGN KEY (doctor_id) REFERENCES doctor(id)
-);
-
-CREATE TABLE Enrollments(
-id INT AUTO_INCREMENT PRIMARY KEY,
-student_id INT,
-course_id INT,
-spec_id INT,
-date_end DATE,
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (course_id) REFERENCES course(id),
-FOREIGN KEY (spec_id) REFERENCES specialization(id)
-);
-
-CREATE TABLE Lecture(
-id INT AUTO_INCREMENT PRIMARY KEY,
-doctor_id INT,
-course_id INT,
-name VARCHAR(100),
-schedule_day VARCHAR(20),
-time_slot VARCHAR(50),
-room VARCHAR(50),
-live_url VARCHAR(255),
-status VARCHAR(20),
-FOREIGN KEY (doctor_id) REFERENCES doctor(id),
-FOREIGN KEY (course_id) REFERENCES course(id),
-FOREIGN KEY (Room_id) REFERENCES Building(ID)
-);
-
-CREATE TABLE Attendance(
-id INT AUTO_INCREMENT PRIMARY KEY,
-student_id INT,
-lecture_id INT,
-join_time DATETIME,
-leave_time DATETIME,
-duration INT,
-status VARCHAR(20),
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (lecture_id) REFERENCES lecture(id)
-);
-
-CREATE TABLE grade(
-id INT AUTO_INCREMENT PRIMARY KEY,
-student_id INT,
-course_id INT,
-semester_id INT,
-sup_grades FLOAT,
-mid_grades FLOAT,
-final_grades FLOAT,
-letter_grades VARCHAR(10),
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (course_id) REFERENCES course(id),
-FOREIGN KEY (semester_id) REFERENCES semesters(id)
-);
-
-CREATE TABLE lecture_material(
-id INT AUTO_INCREMENT PRIMARY KEY,
-lecture_id INT,
-name VARCHAR(300) NOT NULL,
-folder VARCHAR(100),
-file_type VARCHAR(50),
-file_size INT,
-uploaded_by INT,
-FOREIGN KEY (lecture_id) REFERENCES lecture(id),
-FOREIGN KEY (uploaded_by) REFERENCES users(id)
-);
-
-CREATE TABLE Assignment(
-id INT AUTO_INCREMENT PRIMARY KEY,
-Lec_mat_id INT,
-student_id INT,
-start_date DATETIME,
-end_date DATETIME,
-FOREIGN KEY (lecture_id) REFERENCES lecture(id),
-FOREIGN KEY (student_id) REFERENCES students(id)
-);
-
-CREATE TABLE Live(
-id INT AUTO_INCREMENT PRIMARY KEY,
-title VARCHAR(100),
-student_id INT,
-doctor_id INT,
-lec_id INT,
-course_id INT,
-start_date DATETIME,
-end_date DATETIME,
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (doctor_id) REFERENCES doctor(id),
-FOREIGN KEY (course_id) REFERENCES course(id),
-FOREIGN KEY (Lec_id) REFERENCES Lecture(ID)
-);
-
-CREATE TABLE Library(
-id INT AUTO_INCREMENT PRIMARY KEY,
-doctor_id INT,
-title VARCHAR(200) NOT NULL,
-author VARCHAR(100),
-isbn VARCHAR(50) UNIQUE,
-category VARCHAR(100),
-description TEXT,
-pdfurl VARCHAR(255),
-coverimage VARCHAR(255),
-updated_at DATETIME,
-FOREIGN KEY (doctor_id) REFERENCES doctor(id)
-);
-
-CREATE TABLE Faq(
-id INT AUTO_INCREMENT PRIMARY KEY,
-question TEXT,
-answer TEXT,
-is_active BOOLEAN,
-Rating INT,
-student_id INT,
-doctor_id INT,
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (doctor_id) REFERENCES doctor(id)
-);
-
-CREATE TABLE Request_type(
-id INT AUTO_INCREMENT PRIMARY KEY,
-type_key VARCHAR(50) UNIQUE NOT NULL,
-title VARCHAR(100) NOT NULL
-);
-
-CREATE TABLE Student_request(
-id INT AUTO_INCREMENT PRIMARY KEY,
-student_id INT,
-type_request_id INT,
-status VARCHAR(20),
-create_at DATETIME,
-viewed_by INT,
-FOREIGN KEY (student_id) REFERENCES students(id),
-FOREIGN KEY (type_request_id) REFERENCES request_type(id)
-);
-
-CREATE TABLE Student_affairs(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT UNIQUE,
-request_id INT,
-responsibilities TEXT,
-code VARCHAR(50) UNIQUE NOT NULL,
-FOREIGN KEY (user_id) REFERENCES users(id),
-FOREIGN KEY (request_id) REFERENCES student_request(id)
-);
-
-CREATE TABLE Messages(
-id INT AUTO_INCREMENT PRIMARY KEY,
-sender INT,
-receiver INT,
-user_id INT,
-content TEXT,
-send_at DATETIME,
-is_read BOOLEAN,
-reply INT,
-FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE news(
-id INT AUTO_INCREMENT PRIMARY KEY,
-user_id INT NOT NULL,
-title VARCHAR(200),
-content TEXT,
-img_url VARCHAR(255),
-type_size VARCHAR(20),
-created_at DATETIME,
-author VARCHAR(100),
-FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE upload_grades(
-    id SERIAL PRIMARY KEY,
-    course_id INT,
-    doctor_id INT,
-    control_id INT,
+CREATE TABLE Semesters (
+    ID SERIAL PRIMARY KEY,
     spec_id INT,
-    file_name VARCHAR(255),
-    folder VARCHAR(255),
+    NAME VARCHAR(255) NOT NULL,
+    Description TEXT,
+    Start_date DATE,
+    End_date DATE,
+    Build_id VARCHAR(50),
+    FOREIGN KEY (spec_id) REFERENCES Specialization(ID)
+);
+
+CREATE TABLE Study_Plan (
+    ID SERIAL PRIMARY KEY,
+    Spec_id INT,
+    Year_name VARCHAR(100),
+    Model TEXT,
+    FOREIGN KEY (Spec_id) REFERENCES Specialization(ID)
+);
+
+CREATE TABLE Course (
+    ID SERIAL PRIMARY KEY,
+    NAME VARCHAR(255) NOT NULL,
+    Credit_hours INT,
+    Description TEXT,
+    Specialization_id INT,
+    Doctor_id INT,
+    Year_level INT,
+    FOREIGN KEY (Specialization_id) REFERENCES Specialization(ID),
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID)
+);
+
+CREATE TABLE Building (
+    ID SERIAL PRIMARY KEY,
+    Room_Num VARCHAR(50) UNIQUE NOT NULL,
+    Building_loc VARCHAR(255)
+);
+
+CREATE TABLE Lecture (
+    ID SERIAL PRIMARY KEY,
+    Doctor_id INT,
+    Course_id INT,
+    Room_id INT,
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID),
+    FOREIGN KEY (Course_id) REFERENCES Course(ID),
+    FOREIGN KEY (Room_id) REFERENCES Building(ID)
+);
+
+CREATE TABLE Lecture_materials (
+    ID SERIAL PRIMARY KEY,
+    lecture_id INT,
+    NAME VARCHAR(255) NOT NULL,
+    Folder VARCHAR(255),
+    File_type VARCHAR(50),
+    File_size VARCHAR(50),
+    Uploaded_by INT,
+    FOREIGN KEY (lecture_id) REFERENCES Lecture(ID),
+    FOREIGN KEY (Uploaded_by) REFERENCES "USER"(ID)
+);
+
+CREATE TABLE Assignment (
+    ID SERIAL PRIMARY KEY,
+    Lec_mat_id INT,
+    student_id INT,
+    Title VARCHAR(255) NOT NULL,
+    Start_date TIMESTAMP,
+    End_date TIMESTAMP,
+    FOREIGN KEY (Lec_mat_id) REFERENCES Lecture_materials(ID),
+    FOREIGN KEY (student_id) REFERENCES Students(ID)
+);
+
+CREATE TABLE Enrollments (
+    ID SERIAL PRIMARY KEY,
+    Student_id INT,
+    Course_id INT,
+    Spec_id INT,
+    Date_end DATE,
+    FOREIGN KEY (Student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Course_id) REFERENCES Course(ID),
+    FOREIGN KEY (Spec_id) REFERENCES Specialization(ID)
+);
+
+CREATE TABLE Grade (
+    ID SERIAL PRIMARY KEY,
+    Student_id INT,
+    Course_id INT,
+    Semester_id INT,
+    Mid_Grades DECIMAL(5,2),
+    Final_Grades DECIMAL(5,2),
+    Sup_Grades DECIMAL(5,2),
+    Letter_Grades VARCHAR(5),
+    FOREIGN KEY (Student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Course_id) REFERENCES Course(ID),
+    FOREIGN KEY (Semester_id) REFERENCES Semesters(ID)
+);
+
+CREATE TABLE Attendance (
+    ID SERIAL PRIMARY KEY,
+    Student_id INT,
+    Lecture_id INT,
+    Status VARCHAR(50),
+    Duration INT,
+    Join_time TIMESTAMP,
+    Leave_time TIMESTAMP,
+    FOREIGN KEY (Student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Lecture_id) REFERENCES Lecture(ID)
+);
+
+CREATE TABLE Live (
+    ID SERIAL PRIMARY KEY,
+    Course_id INT,
+    Lec_id INT,
+    Student_id INT,
+    Doctor_id INT,
+    title VARCHAR(255),
+    Start_date TIMESTAMP,
+    End_date TIMESTAMP,
+    FOREIGN KEY (Course_id) REFERENCES Course(ID),
+    FOREIGN KEY (Lec_id) REFERENCES Lecture(ID),
+    FOREIGN KEY (Student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID)
+);
+
+CREATE TABLE FAQ (
+    ID SERIAL PRIMARY KEY,
+    Question TEXT,
+    Answer TEXT,
+    Student_id INT,
+    Doctor_id INT,
+    Is_active BOOLEAN,
+    Rating INT,
+    FOREIGN KEY (Student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID)
+);
+
+CREATE TABLE Messages (
+    ID SERIAL PRIMARY KEY,
+    Sender INT,
+    Resever INT,
+    User_id INT,
+    content TEXT,
+    Is_read BOOLEAN,
+    Send_at TIMESTAMP,
+    Reply TEXT,
+    FOREIGN KEY (Sender) REFERENCES "USER"(ID),
+    FOREIGN KEY (Resever) REFERENCES "USER"(ID),
+    FOREIGN KEY (User_id) REFERENCES "USER"(ID)
+);
+
+CREATE TABLE News (
+    ID SERIAL PRIMARY KEY,
+    User_id INT,
+    Title VARCHAR(255) NOT NULL,
+    Content TEXT,
+    Img_url VARCHAR(255),
+    Created_at TIMESTAMP,
+    Type_size VARCHAR(50),
+    Author VARCHAR(255),
+    FOREIGN KEY (User_id) REFERENCES "USER"(ID)
+);
+
+CREATE TABLE Library (
+    ID SERIAL PRIMARY KEY,
+    Doctor_id INT,
+    Title VARCHAR(255) NOT NULL,
+    Author VARCHAR(255),
+    isbn VARCHAR(50) UNIQUE,
+    Description TEXT,
+    Category VARCHAR(100),
+    Pdfurl VARCHAR(255),
+    Coverimage VARCHAR(255),
+    Updated_at TIMESTAMP,
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID)
+);
+
+CREATE TABLE Request_type (
+    ID SERIAL PRIMARY KEY,
+    Type_Key VARCHAR(50) UNIQUE NOT NULL,
+    Title VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Student_Request (
+    ID SERIAL PRIMARY KEY,
+    student_id INT,
+    Type_request_id INT,
+    Status VARCHAR(50),
+    Request_Docum VARCHAR(255),
+    Create_at TIMESTAMP,
+    Viewed_by INT,
+    FOREIGN KEY (student_id) REFERENCES Students(ID),
+    FOREIGN KEY (Type_request_id) REFERENCES Request_type(ID),
+    FOREIGN KEY (Viewed_by) REFERENCES "USER"(ID)
+);
+
+CREATE TABLE Control (
+    ID SERIAL PRIMARY KEY,
+    User_id INT,
+    Grade_id INT,
+    CODE VARCHAR(50) UNIQUE NOT NULL,
+    Permission TEXT,
+    FOREIGN KEY (User_id) REFERENCES "USER"(ID),
+    FOREIGN KEY (Grade_id) REFERENCES Grade(ID)
+);
+
+CREATE TABLE Upload_Grades (
+    ID SERIAL PRIMARY KEY,
+    Course_id INT,
+    Doctor_id INT,
+    Control_id INT,
+    Spec_id INT,
+    File_name VARCHAR(255),
+    Folder VARCHAR(255),
     year_level INT,
     status VARCHAR(50),
-    upload_date TIMESTAMP,
-    approval BOOLEAN,
-    FOREIGN KEY (course_id) REFERENCES Course(ID),
-    FOREIGN KEY (doctor_id) REFERENCES Doctor(ID),
-    FOREIGN KEY (control_id) REFERENCES Control(ID),
-    FOREIGN KEY (spec_id) REFERENCES Specialization(ID)
+    Upload_date TIMESTAMP,
+    Approval BOOLEAN,
+    FOREIGN KEY (Course_id) REFERENCES Course(ID),
+    FOREIGN KEY (Doctor_id) REFERENCES Doctor(ID),
+    FOREIGN KEY (Control_id) REFERENCES Control(ID),
+    FOREIGN KEY (Spec_id) REFERENCES Specialization(ID)
 );

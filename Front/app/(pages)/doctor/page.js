@@ -4,6 +4,7 @@ import '@/styles/doctor.css'
 import { useState, useEffect } from 'react'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
+import { api } from '@/lib/api'
 
 export default function DoctorPage() {
   const [selectedLecture, setSelectedLecture] = useState('')
@@ -12,8 +13,52 @@ export default function DoctorPage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [activeWeek, setActiveWeek] = useState('Week 1')
   const [showWeeklyModal, setShowWeeklyModal] = useState(false)
+  const [doctorData, setDoctorData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchDoctorData = async () => {
+      try {
+        let userId = localStorage.getItem('userId')
+        const token = localStorage.getItem('token')
+        
+        // Fallback: Decode token if userId is missing
+        if (!userId && token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            userId = payload.id
+            if (userId) {
+              localStorage.setItem('userId', userId)
+              console.log('Recovered userId from token:', userId)
+            }
+          } catch (e) {
+            console.error('Error decoding token:', e)
+          }
+        }
+
+        console.log('Fetching doctor data for userId:', userId)
+        
+        if (!userId) {
+          console.error('No userId found in localStorage or token')
+          setLoading(false)
+          return
+        }
+
+        // Search for doctor record by user_id
+        const response = await api.doctors.getAll({ user_id: userId })
+        if (response.status === 'success' && response.data.length > 0) {
+          const currentDoctor = response.data.find(d => String(d.user_id) === String(userId)) || response.data[0]
+          setDoctorData(currentDoctor)
+        }
+      } catch (error) {
+        console.error('Error fetching doctor data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDoctorData()
+
     const handleMouseMove = (e) => {
       const glow = document.getElementById('cursor-glow')
       if (glow) {
@@ -64,6 +109,24 @@ export default function DoctorPage() {
 
       <Header title="Doctor Dashboard" />
 
+      {/* Logout button top right for quick access if needed, or implement into header */}
+      <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 1000 }}>
+        <button 
+          className="btn btn-sm" 
+          onClick={() => {
+            if (confirm('Are you sure you want to logout?')) {
+              localStorage.removeItem('token')
+              localStorage.removeItem('userId')
+              sessionStorage.clear()
+              window.location.href = '/login'
+            }
+          }}
+          style={{ background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.3)', fontWeight: 600 }}
+        >
+          <i className="bi bi-box-arrow-right me-1"></i> Logout
+        </button>
+      </div>
+
       <div className="main-content container-fluid p-3 p-md-4" style={{ maxWidth: '1200px' }}>
 
         {/* 1. Doctor Profile Banner */}
@@ -79,13 +142,13 @@ export default function DoctorPage() {
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, transparent 0%, rgba(21, 32, 54, 0.6) 40%, rgba(21, 32, 54, 0.95) 100%)' }}></div>
           <div className="position-relative d-flex flex-column flex-md-row-reverse align-items-center align-items-md-start" style={{ zIndex: 1 }}>
-            <img src="/Pics/student.jpg" alt="Dr. Sherif Ibrahim" style={{ width: '130px', height: '130px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', marginLeft: '30px', marginBottom: '15px', transition: 'transform 0.3s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
+            <img src={doctorData?.photo || "/Pics/student.jpg"} alt={doctorData?.name || "Dr. Sherif Ibrahim"} style={{ width: '130px', height: '130px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', marginLeft: '30px', marginBottom: '15px', transition: 'transform 0.3s', objectFit: 'cover' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
             <div className="text-center text-md-end mt-2">
-              <h2 style={{ fontWeight: 700, marginBottom: '5px', fontSize: '2.2rem' }}>Dr. Sherif Ibrahim</h2>
-              <p style={{ fontSize: '1.2rem', marginBottom: '2px', color: '#d1e8ff' }}>Assistant Professor</p>
-              <p style={{ fontSize: '1.1rem', opacity: 0.8, marginBottom: '20px', color: '#a0c4ff' }}>Mechatronics Department</p>
+              <h2 style={{ fontWeight: 700, marginBottom: '5px', fontSize: '2.2rem' }}>{doctorData?.name || "Dr. Sherif Ibrahim"}</h2>
+              <p style={{ fontSize: '1.2rem', marginBottom: '2px', color: '#d1e8ff' }}>{doctorData?.qualification || "Assistant Professor"}</p>
+              <p style={{ fontSize: '1.1rem', opacity: 0.8, marginBottom: '20px', color: '#a0c4ff' }}>{doctorData?.department || "Mechatronics Department"}</p>
               <div className="d-flex justify-content-center justify-content-md-end gap-4">
-                <div className="text-end"><h4 className="mb-0 fw-bold">4.8/5.0</h4><small style={{ color: '#a0c4ff' }}>Student Rating</small></div>
+                <div className="text-end"><h4 className="mb-0 fw-bold">{doctorData?.rating ? `${doctorData.rating}/5.0` : "4.8/5.0"}</h4><small style={{ color: '#a0c4ff' }}>Student Rating</small></div>
                 <div className="text-end"><h4 className="mb-0 fw-bold">312</h4><small style={{ color: '#a0c4ff' }}>Students</small></div>
                 <div className="text-end"><h4 className="mb-0 fw-bold">48</h4><small style={{ color: '#a0c4ff' }}>Lectures</small></div>
               </div>
@@ -246,7 +309,7 @@ export default function DoctorPage() {
                       <p style={{ color: '#888', margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>Professional Overview</p>
                     </div>
                   </div>
-                  <span className="badge" style={{ background: 'linear-gradient(to right, #c4a16b, #e0c89c)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 600, fontSize: '0.85rem', boxShadow: '0 4px 10px rgba(196,161,107,0.3)', letterSpacing: '0.5px' }}>Ph.D. Mechatronics</span>
+                  <span className="badge" style={{ background: 'linear-gradient(to right, #c4a16b, #e0c89c)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 600, fontSize: '0.85rem', boxShadow: '0 4px 10px rgba(196,161,107,0.3)', letterSpacing: '0.5px' }}>{doctorData?.qualification || "Ph.D. Mechatronics"}</span>
                 </div>
 
                 <div className="row flex-grow-1 gy-4">
@@ -278,7 +341,7 @@ export default function DoctorPage() {
                         </div>
                         <div>
                           <small style={{ color: '#888', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</small>
-                          <span style={{ color: '#2b3a55', fontSize: '0.95rem', fontWeight: 700 }}>dr.sherif@evo.edu</span>
+                          <span style={{ color: '#2b3a55', fontSize: '0.95rem', fontWeight: 700 }}>{doctorData?.email || "dr.sherif@evo.edu"}</span>
                         </div>
                       </div>
 
@@ -298,7 +361,7 @@ export default function DoctorPage() {
                         </div>
                         <div>
                           <small style={{ color: '#888', display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</small>
-                          <span style={{ color: '#2b3a55', fontSize: '0.95rem', fontWeight: 700 }}>Building A, Rm 401</span>
+                          <span style={{ color: '#2b3a55', fontSize: '0.95rem', fontWeight: 700 }}>{doctorData?.officelocation || "Building A, Rm 401"}</span>
                         </div>
                       </div>
 
@@ -323,9 +386,9 @@ export default function DoctorPage() {
 
         {/* 4. Quick Actions */}
         <div className="row g-3 mb-4">
-          <div className="col-md-4">
+          <div className="col-md-3">
             <div className="text-white position-relative" style={{ background: '#3a4f6d', overflow: 'hidden', cursor: 'pointer', borderRadius: '14px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 6px 20px rgba(58,79,109,0.25)', transition: 'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.35s ease' }} onClick={() => window.location.href = '/doctor/videos'} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(58,79,109,0.4)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,79,109,0.25)'; }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.2, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', transition: 'transform 0.5s ease', transform: 'scale(1)' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}></div>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.2, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', transition: 'transform 0.5s ease', transform: 'scale(1)' }}></div>
               <div className="position-relative z-1 text-center" style={{ pointerEvents: 'none' }}>
                 <i className="bi bi-camera-video mb-2" style={{ fontSize: '1.8rem', opacity: 0.85 }}></i>
                 <h4 className="fw-bold mb-1" style={{ fontSize: '1.5rem' }}>Videos</h4>
@@ -333,9 +396,9 @@ export default function DoctorPage() {
               </div>
             </div>
           </div>
-          <div className="col-md-4">
+          <div className="col-md-3">
             <div className="text-white position-relative" style={{ background: 'linear-gradient(135deg, #b8905a, #d4ab7a)', overflow: 'hidden', cursor: 'pointer', borderRadius: '14px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 6px 20px rgba(196,161,107,0.3)', transition: 'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.35s ease' }} onClick={() => window.location.href = '/doctor/assignments'} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(196,161,107,0.5)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(196,161,107,0.3)'; }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.12, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'transform 0.5s ease', transform: 'scale(1)' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}></div>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.12, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'transform 0.5s ease', transform: 'scale(1)' }}></div>
               <div className="position-relative z-1 text-center" style={{ pointerEvents: 'none' }}>
                 <i className="bi bi-clipboard-check mb-2" style={{ fontSize: '1.8rem', opacity: 0.85 }}></i>
                 <h4 className="fw-bold mb-1" style={{ fontSize: '1.5rem' }}>Assignments</h4>
@@ -343,13 +406,23 @@ export default function DoctorPage() {
               </div>
             </div>
           </div>
-          <div className="col-md-4">
-            <div className="text-white position-relative" style={{ background: 'linear-gradient(135deg, #7a94ae, #a0bcd4)', overflow: 'hidden', cursor: 'pointer', borderRadius: '14px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 6px 20px rgba(140,163,186,0.3)', transition: 'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.35s ease' }} onClick={() => window.location.href = '/doctor/statistics'} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(140,163,186,0.5)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(140,163,186,0.3)'; }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.15, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', transition: 'transform 0.5s ease', transform: 'scale(1)' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}></div>
+          <div className="col-md-3">
+            <div className="text-white position-relative" style={{ background: 'linear-gradient(135deg, #7a94ae, #a0bcd4)', overflow: 'hidden', cursor: 'pointer', borderRadius: '14px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 6px 20px rgba(140,163,186,0.3)', transition: 'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.35s ease' }} onClick={() => window.location.href = '/doctor/grading'} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(140,163,186,0.5)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(140,163,186,0.3)'; }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.15, backgroundSize: 'cover', backgroundPosition: 'center', backgroundBlendMode: 'overlay', transition: 'transform 0.5s ease', transform: 'scale(1)' }}></div>
               <div className="position-relative z-1 text-center" style={{ pointerEvents: 'none' }}>
-                <i className="bi bi-bar-chart-line mb-2" style={{ fontSize: '1.8rem', opacity: 0.85 }}></i>
-                <h4 className="fw-bold mb-1" style={{ fontSize: '1.5rem' }}>Statistics</h4>
-                <p className="mb-0" style={{ opacity: 0.85, fontSize: '0.95rem' }}>View Course Stats</p>
+                <i className="bi bi-pencil-square mb-2" style={{ fontSize: '1.8rem', opacity: 0.85 }}></i>
+                <h4 className="fw-bold mb-1" style={{ fontSize: '1.5rem' }}>Grading</h4>
+                <p className="mb-0" style={{ opacity: 0.85, fontSize: '0.95rem' }}>Grade Submissions</p>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="text-white position-relative" style={{ background: 'linear-gradient(135deg, #2b3a55, #3a4f6d)', overflow: 'hidden', cursor: 'pointer', borderRadius: '14px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 6px 20px rgba(43,58,85,0.25)', transition: 'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.35s ease' }} onClick={() => window.location.href = '/doctor/student-grades'} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(43,58,85,0.4)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(43,58,85,0.25)'; }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: "url('/Pics/11.png')", opacity: 0.12, backgroundSize: 'cover', backgroundPosition: 'center', transition: 'transform 0.5s ease', transform: 'scale(1)' }}></div>
+              <div className="position-relative z-1 text-center" style={{ pointerEvents: 'none' }}>
+                <i className="bi bi-table mb-2" style={{ fontSize: '1.8rem', opacity: 0.85 }}></i>
+                <h4 className="fw-bold mb-1" style={{ fontSize: '1.5rem' }}>Students Marks</h4>
+                <p className="mb-0" style={{ opacity: 0.85, fontSize: '0.95rem' }}>Manage Grades</p>
               </div>
             </div>
           </div>

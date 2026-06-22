@@ -1,30 +1,48 @@
-import { useState, useEffect } from 'react'
+'use client'
 
-export default function GradesComponent() {
+import { useState, useEffect } from 'react'
+import { api } from '@/lib/api'
+
+export default function GradesComponent({ studentId }) {
   const [grades, setGrades] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchGrades()
-  }, [])
+    if (studentId) {
+      fetchGrades()
+    }
+  }, [studentId])
 
   const fetchGrades = async () => {
     try {
-      // TODO: استبدل بـ API call الفعلي
-      // const response = await fetch('/api/student/grades')
-      // const data = await response.json()
-      // setGrades(data)
+      const res = await api.grades.getByStudentId(studentId)
+      if (res.status === 'success' && res.data) {
+        const formattedGrades = res.data.map(g => {
+          const sup = parseFloat(g.sup_grades) || 0;
+          const mid = parseFloat(g.mid_grades) || 0;
+          const final = parseFloat(g.final_grades) || 0;
+          const totalGrade = parseFloat(g.total_grade) || 150;
+          
+          let percentage = null;
+          // Calculate percentage only if there are some grades
+          if (g.sup_grades !== null || g.mid_grades !== null || g.final_grades !== null) {
+            percentage = ((sup + mid + final) / totalGrade * 100).toFixed(1);
+          }
 
-      setGrades([
-        { id: 1, subject: 'Data Science', sup: 20, mid: 40, final: null, grade: 'A+', percentage: 95 },
-        { id: 2, subject: 'Data Engineering', sup: 15, mid: 37, final: null, grade: 'A', percentage: 90 },
-        { id: 3, subject: 'AI', sup: 7.5, mid: 25, final: null, grade: 'B', percentage: 78 },
-        { id: 4, subject: 'English 2', sup: 8.5, mid: 20, final: null, grade: 'A', percentage: 88 },
-        { id: 5, subject: 'Web Application', sup: 18, mid: 25, final: null, grade: 'A', percentage: 92 },
-        { id: 6, subject: 'Expert System', sup: 18.5, mid: 45, final: null, grade: 'A+', percentage: 96 },
-      ])
+          return {
+            id: g.id || g.course_id,
+            subject: g.subject_name,
+            sup: g.sup_grades,
+            mid: g.mid_grades,
+            final: g.final_grades,
+            grade: g.letter_grades || '-',
+            percentage: percentage
+          };
+        })
+        setGrades(formattedGrades)
+      }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error fetching grades:', err)
     } finally {
       setLoading(false)
     }
@@ -48,12 +66,12 @@ export default function GradesComponent() {
         <div className="alert alert-info">Loading grades...</div>
       ) : (
         <>
-          <h2 style={{color: '#6fc3ff', fontWeight: 'bold'}} className="mb-4">Current Semester Grades</h2>
-          
+          <h2 style={{ color: '#6fc3ff', fontWeight: 'bold' }} className="mb-4">Current Semester Grades</h2>
+
           <div className="table-responsive">
             <table className="table table-dark table-hover text-white">
               <thead>
-                <tr style={{borderBottom: '2px solid #6fc3ff'}}>
+                <tr style={{ borderBottom: '2px solid #6fc3ff' }}>
                   <th>Subject</th>
                   <th>Assignments</th>
                   <th>Midterm</th>
@@ -70,12 +88,12 @@ export default function GradesComponent() {
                     <td>{g.mid}</td>
                     <td>{g.final || '-'}</td>
                     <td>
-                      <div className="progress" style={{height: '20px'}}>
-                        <div 
-                          className="progress-bar bg-info" 
-                          style={{width: `${g.percentage}%`}}
+                      <div className="progress" style={{ height: '20px', backgroundColor: '#2d2d2d' }}>
+                        <div
+                          className="progress-bar bg-info"
+                          style={{ width: g.percentage ? `${g.percentage}%` : '0%' }}
                         >
-                          {g.percentage}%
+                          {g.percentage ? `${g.percentage}%` : '-'}
                         </div>
                       </div>
                     </td>

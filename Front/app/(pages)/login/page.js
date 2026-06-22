@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { api } from '@/lib/api'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    username: '',
+    id: '',
     password: '',
   })
   const [message, setMessage] = useState('')
@@ -17,18 +18,70 @@ export default function LoginPage() {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (formData.username && formData.password) {
-      setMessage({
-        type: 'success',
-        text: `Welcome! Logged in as ${formData.username}`,
-      })
-      setTimeout(() => setMessage(''), 3000)
-    } else {
+    if (!formData.id || !formData.password) {
       setMessage({
         type: 'error',
         text: 'Please fill in all fields',
+      })
+      return
+    }
+
+    try {
+      const result = await api.auth.login(formData)
+
+      if (result.status === 'success') {
+        const { token, user } = result.data
+        
+        // Store token and user info
+        localStorage.setItem('token', token)
+        localStorage.setItem('userRole', user.role)
+        localStorage.setItem('userName', user.name)
+        
+        // Handle both id and user_id cases
+        const storedId = user.id || user.user_id
+        if (storedId !== undefined && storedId !== null) {
+          const idString = String(storedId)
+          localStorage.setItem('userId', idString)
+          console.log('Successfully saved userId:', idString)
+        } else {
+          console.error('CRITICAL: Login successful but no ID found in user object!', user)
+        }
+
+        setMessage({
+          type: 'success',
+          text: `Welcome, ${user.name}! Redirecting...`,
+        })
+
+        // Redirect based on role
+        setTimeout(() => {
+          switch (user.role) {
+            case 'student':
+              window.location.href = '/student-page'
+              break
+            case 'doctor':
+              window.location.href = '/doctor'
+              break
+            case 'student affairs':
+              window.location.href = '/documents/admin'
+              break;
+            case 'admin':
+              window.location.href = '/news/admin'
+              break
+            case 'control':
+              window.location.href = '/control'
+              break
+            default:
+              window.location.href = '/'
+          }
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setMessage({
+        type: 'error',
+        text: error.data?.error || error.message || 'Login failed. Please check your credentials.',
       })
     }
   }
@@ -216,9 +269,9 @@ export default function LoginPage() {
             >
               <input
                 type="text"
-                name="username"
-                placeholder="User Name"
-                value={formData.username}
+                name="id"
+                placeholder="User ID"
+                value={formData.id}
                 onChange={handleChange}
               />
 

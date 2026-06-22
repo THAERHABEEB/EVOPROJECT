@@ -12,7 +12,21 @@ export default function RoadmapComponent() {
 
   const fetchRoadmap = async () => {
     try {
-      // TODO: Replace with actual API call
+      // Try API call first
+      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+      if (userId) {
+        try {
+          const res = await (await import('@/lib/api')).api.studentsSpecialization.roadmap(userId)
+          if (res?.status === 'success' && res.data) {
+            const semestersFromApi = res.data.semesters.map(s => ({ id: s.semester, termName: `Semester ${s.semester}`, termNumber: s.semester, courses: [], completed: s.completed }))
+            setTerms(semestersFromApi)
+            setCurrentTerm(res.data.current_semester || 0)
+            return
+          }
+        } catch (e) {
+          console.warn('Roadmap API failed, falling back to static roadmap', e)
+        }
+      }
       setTerms([
         {
           id: 1,

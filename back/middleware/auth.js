@@ -14,7 +14,11 @@ const authenticateToken = (req, res, next) => {
     // Secret key should be in your .env file
     const secretKey = process.env.JWT_SECRET || 'your_super_secret_key'; 
     const decoded = jwt.verify(token, secretKey);
-    req.user = decoded; // add user payload to request
+    
+    // Add user payload to request
+    // This ensures req.user.id and req.user.role are available in controllers
+    req.user = decoded; 
+    
     next();
   } catch (error) {
     console.error('JWT Verification Error:', error.message);

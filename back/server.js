@@ -10,7 +10,7 @@ const test = require('./config/test_db')
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+const authRoutes = require('./routes/auth');
 // Middleware
 // Enable CORS
 const allowedOrigins = [
@@ -19,7 +19,9 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   // Allow all Vercel deployments
   /\.vercel\.app$/,
-  /\.netlify\.app$/
+  /\.netlify\.app$/,
+  // Allow all Render deployments
+  /\.onrender\.com$/,
 ];
 
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -56,6 +58,8 @@ app.get('/health', (req, res) => {
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve uploads (lecture files, grades, etc.)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
 app.get('/api', (req, res) => {

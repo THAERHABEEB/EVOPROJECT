@@ -1,0 +1,39 @@
+services:
+  # ── Backend: Express.js API ────────────────────────────────────────────────
+  - type: web
+    name: evo-backend
+    runtime: node
+    rootDir: back
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false   # Set this in Render dashboard
+      - key: JWT_SECRET
+        sync: false   # Set this in Render dashboard
+      - key: FRONTEND_URL
+        fromService:
+          name: evo-frontend
+          type: web
+          property: host
+    healthCheckPath: /health
+
+  # ── Frontend: Next.js App ─────────────────────────────────────────────────
+  - type: web
+    name: evo-frontend
+    runtime: node
+    rootDir: front
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: evo-backend
+          type: web
+          property: host

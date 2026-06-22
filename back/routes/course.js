@@ -34,8 +34,9 @@ router.get('/:id', async (req, res) => {
 // POST - Create a new record (Simplified boilerplate, replace columns as needed)
 router.post('/', async (req, res) => {
   try {
-    const { name, description, credit_hours, specialization_id, doctor_id, year_level } = req.body;
-    const result = await runQuery('INSERT INTO "course" (name, description, credit_hours, specialization_id, doctor_id, year_level) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [req.body.name, req.body.description, req.body.credit_hours, req.body.specialization_id, req.body.doctor_id, req.body.year_level]);
+    const { name, description, credit_hours, specialization_id, doctor_id, year_level, total_grade } = req.body;
+    const finalTotalGrade = total_grade !== undefined ? total_grade : 150;
+    const result = await runQuery('INSERT INTO "course" (NAME, Description, Credit_hours, Specialization_id, Doctor_id, Year_level, total_grade) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', [req.body.name, req.body.description, req.body.credit_hours, req.body.specialization_id, req.body.doctor_id, req.body.year_level, finalTotalGrade]);
     res.status(201).json({ status: 'success', data: result.rows[0] });
   } catch (error) {
     console.error('Error inserting data into course:', error);
@@ -46,8 +47,9 @@ router.post('/', async (req, res) => {
 // PUT - Update a record by ID
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, credit_hours, specialization_id, doctor_id, year_level } = req.body;
-    const result = await runQuery('UPDATE "course" SET name = $1, description = $2, credit_hours = $3, specialization_id = $4, doctor_id = $5, year_level = $6 WHERE id = $7 RETURNING *', [req.body.name, req.body.description, req.body.credit_hours, req.body.specialization_id, req.body.doctor_id, req.body.year_level, req.params.id]);
+    const { name, description, credit_hours, specialization_id, doctor_id, year_level, total_grade } = req.body;
+    const finalTotalGrade = total_grade !== undefined ? total_grade : 150;
+    const result = await runQuery('UPDATE "course" SET NAME = $1, Description = $2, Credit_hours = $3, Specialization_id = $4, Doctor_id = $5, Year_level = $6, total_grade = $7 WHERE id = $8 RETURNING *', [req.body.name, req.body.description, req.body.credit_hours, req.body.specialization_id, req.body.doctor_id, req.body.year_level, finalTotalGrade, req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ status: 'error', error: 'Record not found' });
     res.json({ status: 'success', data: result.rows[0] });
   } catch (error) {
@@ -66,6 +68,32 @@ router.delete('/:id', async (req, res) => {
     res.json({ status: 'success', message: 'Record deleted successfully' });
   } catch (error) {
     console.error('Error deleting data from course:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// GET all students enrolled in a course with their grades
+router.get('/:id/students', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        s.ID, 
+        s.NAME, 
+        s.Department, 
+        s.Year_level, 
+        g.Mid_Grades, 
+        g.Final_Grades, 
+        g.Sup_Grades, 
+        g.Letter_Grades 
+      FROM Students s 
+      JOIN Enrollments e ON s.ID = e.Student_id 
+      LEFT JOIN Grade g ON (s.ID = g.Student_id AND e.Course_id = g.Course_id) 
+      WHERE e.Course_id = $1
+    `;
+    const data = await getAll(query, [req.params.id]);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching course students:', error);
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });
