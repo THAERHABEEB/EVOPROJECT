@@ -181,23 +181,7 @@ router.get('/:id/statistics', async (req, res) => {
     }
 
     // 3. Get Class Ranking
-    const rankQuery = `
-      SELECT s.id as st_id, COALESCE(AVG(CAST(NULLIF(g.final_grades::text, '') AS NUMERIC)), 0) as avg_grade
-      FROM "students" s
-      LEFT JOIN grade g ON s.id = g.student_id
-      WHERE s.department = $1
-      GROUP BY s.id
-      ORDER BY avg_grade DESC
-    `;
-    const departmentRanks = await getAll(rankQuery, [student.department]);
-    let myRank = 0;
-    for (let i = 0; i < departmentRanks.length; i++) {
-      if (departmentRanks[i].st_id === studentId) {
-        myRank = i + 1;
-        break;
-      }
-    }
-    const ranking = `${myRank} of ${departmentRanks.length || 1}`;
+    const ranking = student.class_ranking || 'N/A';
 
     // 4. Attendance
     const attendanceRecords = await getAll('SELECT * FROM attendance WHERE student_id = $1', [studentId]);
