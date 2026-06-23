@@ -42,13 +42,17 @@ export default function StudentPage() {
       const res = await api.students.getByUserId(userId)
       if (res.status === 'success' && res.data) {
         const data = res.data
+        let photoUrl = data.photo || '/Pics/student.jpg';
+        if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('/')) {
+          photoUrl = '/' + photoUrl;
+        }
         setStudentInfo({
           name: data.name,
           specialty: `${data.department || ''}${data.year_level ? ` - Year ${data.year_level}` : ''}`,
           studentId: data.id,
           phone: data.phone,
           address: data.address,
-          image: data.photo || 'Pics/student.jpg'
+          image: photoUrl
         })
         // If specialization is not set, send student to selection page (first-time only)
         if (!data.department) {
@@ -165,7 +169,11 @@ export default function StudentPage() {
             }}
             title="View full profile"
           >
-            <img src={studentInfo?.image || 'Pics/student.jpg'} alt="Student" />
+            <img 
+              src={studentInfo?.image || '/Pics/student.jpg'} 
+              alt="Student" 
+              onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
+            />
             <div>
               <strong>{studentInfo?.name || 'Abdulrahman Reda Kamel'}</strong><br />
               <small>{studentInfo?.specialty || 'Data Science - Year 2'}</small>

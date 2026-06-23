@@ -8,7 +8,7 @@ export default function ProfileComponent({ studentInfo }) {
     studentId: '247818',
     phone: '0155984249',
     address: '10th of Ramadan',
-    image: 'Pics/student.jpg',
+    image: '/Pics/student.jpg',
   }
 
   const fields = [
@@ -28,6 +28,7 @@ export default function ProfileComponent({ studentInfo }) {
             src={info.image}
             alt="Student"
             className="profile-page__avatar"
+            onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
           />
           <span className="profile-page__badge">Student</span>
         </div>
