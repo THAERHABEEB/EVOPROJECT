@@ -165,10 +165,20 @@ router.get('/:id/statistics', async (req, res) => {
     const gpa = grades.length > 0 ? (totalGpaPoints / grades.length).toFixed(2) : 0;
     const averageGrade = grades.length > 0 ? (totalGradePercentage / grades.length).toFixed(1) : 0;
 
-    const gpaTrend = Object.keys(gpaTrendMap).sort((a,b)=>a-b).map(sem => ({
-      semester: `S${sem}`,
-      gpa: parseFloat((gpaTrendMap[sem].total / gpaTrendMap[sem].count).toFixed(2))
-    }));
+    let gpaTrend = [];
+    for (let i = 1; i <= 8; i++) {
+      if (gpaTrendMap[i]) {
+        gpaTrend.push({
+          semester: `S${i}`,
+          gpa: parseFloat((gpaTrendMap[i].total / gpaTrendMap[i].count).toFixed(2))
+        });
+      } else {
+        gpaTrend.push({
+          semester: `S${i}`,
+          gpa: 0
+        });
+      }
+    }
 
     // 3. Get Class Ranking
     const rankQuery = `
@@ -209,15 +219,20 @@ router.get('/:id/statistics', async (req, res) => {
 
     // 5. Assignment Status
     const quizzes = await getAll('SELECT * FROM quiz_submission WHERE student_id = $1', [studentId]);
-    const assignmentStatus = quizzes.length > 0 
-      ? [
-          { name: 'Submitted', value: quizzes.length, color: '#6fc3ff' },
-          { name: 'Pending', value: 0, color: '#f39c12' },
-          { name: 'Missed', value: 0, color: '#ff6b6b' },
-        ]
-      : [
-          { name: 'No Data', value: 1, color: 'rgba(255,255,255,0.1)' }
-        ];
+    
+    // Filter out 0 values to completely avoid Recharts PieChart crashes
+    let assignmentStatusRaw = [
+      { name: 'Submitted', value: quizzes.length || 0, color: '#6fc3ff' },
+      { name: 'Pending', value: 0, color: '#f39c12' }, // In a real scenario, calculate from total assignments
+      { name: 'Missed', value: 0, color: '#ff6b6b' },
+    ];
+    let assignmentStatus = assignmentStatusRaw.filter(item => item.value > 0);
+    
+    if (assignmentStatus.length === 0) {
+      assignmentStatus = [
+        { name: 'No Data', value: 1, color: 'rgba(255,255,255,0.1)' }
+      ];
+    }
     
     const activityData = [
       { week: 'W1', assignments: 0, quizzes: 0 },
