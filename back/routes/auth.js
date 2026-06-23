@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const jwt = require('jsonwebtoken');
+const { getOne, runQuery } = require('../config/db.js');
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
@@ -19,7 +24,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
     }
 
-    // 3. المقارنة الصارمة بعد تحويل القيمتين إلى نصوص عادية (Plain Text) لضمان عدم حدوث تعارض أنواع
+    // 3. المقارنة الصارمة بعد تحويل القيمتين إلى نصوص عادية (Plain Text)
     const inputPassword = String(password).trim();
     const dbPassword = String(user.password).trim();
 
@@ -56,3 +61,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ status: 'error', error: 'Server error' });
   }
 });
+
+module.exports = router;
