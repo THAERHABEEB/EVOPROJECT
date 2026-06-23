@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  basePath: '/EVOPROJECT',
+  assetPrefix: '/EVOPROJECT/',
   reactStrictMode: true,
   images: {
     domains: ['scontent.fcai30-1.fna.fbcdn.net'],
