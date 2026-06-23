@@ -5,68 +5,28 @@ import {
   Area, AreaChart
 } from 'recharts'
 
-export default function StatisticsComponent() {
+import api from '../../../lib/api'
+
+export default function StatisticsComponent({ userId }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchStatistics()
-  }, [])
+    if (userId) {
+      fetchStatistics()
+    }
+  }, [userId])
 
   const fetchStatistics = async () => {
     try {
-      // TODO: استبدل بـ API call الفعلي
-      setStats({
-        gpa: 3.85,
-        totalAttendance: 85,
-        lecturesAttended: 34,
-        totalLectures: 40,
-        assignmentsSubmitted: 24,
-        totalAssignments: 25,
-        averageGrade: 92,
-        ranking: '15 of 150',
-        semesterStats: [
-          { name: 'First', gpa: 3.70 },
-          { name: 'Second', gpa: 3.85 },
-        ],
-        attendanceTrend: [
-          { week: 'Week 1', present: 5, absent: 0 },
-          { week: 'Week 2', present: 4, absent: 1 },
-          { week: 'Week 3', present: 5, absent: 0 },
-          { week: 'Week 4', present: 3, absent: 2 },
-          { week: 'Week 5', present: 5, absent: 0 },
-          { week: 'Week 6', present: 5, absent: 0 },
-        ],
-        subjectGrades: [
-          { subject: 'AI', score: 95 },
-          { subject: 'Networks', score: 88 },
-          { subject: 'Databases', score: 92 },
-          { subject: 'Security', score: 85 },
-          { subject: 'Web Dev', score: 98 },
-        ],
-        activityData: [
-          { week: 'W1', assignments: 2, quizzes: 1 },
-          { week: 'W2', assignments: 3, quizzes: 0 },
-          { week: 'W3', assignments: 4, quizzes: 2 },
-          { week: 'W4', assignments: 2, quizzes: 1 },
-          { week: 'W5', assignments: 5, quizzes: 1 },
-          { week: 'W6', assignments: 3, quizzes: 2 },
-        ],
-        assignmentStatus: [
-          { name: 'Submitted', value: 24, color: '#6fc3ff' },
-          { name: 'Pending', value: 4, color: '#f39c12' },
-          { name: 'Missed', value: 1, color: '#ff6b6b' },
-        ],
-        gpaTrend: [
-          { semester: 'S1', gpa: 3.2 },
-          { semester: 'S2', gpa: 3.4 },
-          { semester: 'S3', gpa: 3.55 },
-          { semester: 'S4', gpa: 3.7 },
-          { semester: 'S5', gpa: 3.85 },
-        ]
-      })
+      const res = await api.students.getStatistics(userId);
+      if (res.status === 'success' && res.data) {
+        setStats(res.data);
+      } else {
+        console.error('Failed to load statistics');
+      }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error fetching statistics:', err)
     } finally {
       setLoading(false)
     }

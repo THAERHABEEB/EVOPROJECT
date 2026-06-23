@@ -112,6 +112,7 @@ export const api = {
   students: {
     ...createResource('students'),
     getByUserId: (userId) => request(`/students/user/${userId}`),
+    getStatistics: (id) => request(`/students/${id}/statistics`),
   },
   // Helper to update specialization specifically
   studentsSpecialization: {

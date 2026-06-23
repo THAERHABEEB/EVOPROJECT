@@ -120,7 +120,7 @@ export default function StudentPage() {
       case 'activities':
         return <ActivitiesComponent />
       case 'statistics':
-        return <StatisticsComponent />
+        return <StatisticsComponent userId={userId} />
       case 'assignments':
         return <AssignmentsComponent />
       case 'roadmap':
