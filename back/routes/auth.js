@@ -1,29 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { getOne, runQuery } = require('../config/db.js');
 
-// POST /api/auth/login - Login User
-// POST /api/auth/login - Login User
+// POST /api/auth/login - Login User (Plain Text Password)
 router.post('/login', async (req, res) => {
   try {
-    // 1. استقبال الـ id وليس name ليتوافق مع الفرونت إند
+    // 1. استقبال الـ id والـ password من الفرونت إند
     const { id, password } = req.body;
 
     if (!id || !password) {
       return res.status(400).json({ status: 'error', error: 'Missing fields' });
     }
 
-    // 2. البحث في قاعدة البيانات باستخدام الـ id (وتحويله لرقم إذا كان العمود نوعه Integer)
+    // 2. البحث في قاعدة البيانات باستخدام الـ id
     const user = await getOne('SELECT * FROM "USER" WHERE id = $1', [id]);
     if (!user) {
       return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
     }
 
-    // 3. فحص الباسورد العادي ومقارنته بالهاش المشفر في قاعدة البيانات
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+    // 3. مقارنة نصية مباشرة لـ Password بدون أي تشفير (Plain Text)
+    // سيطابق الحسابات مثل ID: 2 و Password: 12300123 مباشرة
+    if (String(password) !== String(user.password)) {
       return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
     }
 
@@ -75,7 +73,8 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ status: 'error', error: 'Server error' });
   }
 });
-// POST /api/auth/register - Create User (Optional, if you need registration)
+
+// POST /api/auth/register - Create User (يمكنك تركه أو تعديله لاحقاً)
 router.post('/register', async (req, res) => {
   try {
     const { name, password, role } = req.body;
@@ -84,14 +83,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ status: 'error', error: 'Missing fields' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Insert User
+    // إدخال مستخدم جديد بنص واضح ومباشر أيضاً تماشياً مع تعديل الـ login
     const result = await runQuery(
       'INSERT INTO "USER" (name, password, role, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *',
-      [name, hashedPassword, role]
+      [name, password, role]
     );
 
     res.status(201).json({ status: 'success', data: result.rows[0] });
