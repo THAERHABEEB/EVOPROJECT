@@ -8,18 +8,21 @@ import {
 
 import api from '../../../../lib/api'
 
-export default function StatisticsComponent({ userId }) {
+export default function StatisticsComponent() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (userId) {
-      fetchStatistics()
-    }
-  }, [userId])
+    fetchStatistics()
+  }, [])
 
   const fetchStatistics = async () => {
     try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
       const res = await api.students.getStatistics(userId);
       if (res.status === 'success' && res.data) {
         setStats(res.data);
