@@ -5,7 +5,7 @@ import {
   Area, AreaChart
 } from 'recharts'
 
-import api from '../../../lib/api'
+import api from '../../../../lib/api'
 
 export default function StatisticsComponent({ userId }) {
   const [stats, setStats] = useState(null)
