@@ -142,7 +142,7 @@ export default function StatisticsComponent({ userId }) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                     <XAxis dataKey="semester" stroke="rgba(255,255,255,0.8)" tick={{ fill: 'rgba(255,255,255,0.8)' }} axisLine={{ stroke: 'rgba(255,255,255,0.3)' }} />
-                    <YAxis domain={['dataMin - 0.2', 4.0]} stroke="rgba(255,255,255,0.8)" tick={{ fill: 'rgba(255,255,255,0.8)' }} axisLine={{ stroke: 'rgba(255,255,255,0.3)' }} />
+                    <YAxis domain={[0, 4.0]} stroke="rgba(255,255,255,0.8)" tick={{ fill: 'rgba(255,255,255,0.8)' }} axisLine={{ stroke: 'rgba(255,255,255,0.3)' }} />
                     <Tooltip contentStyle={{ background: 'rgba(10,20,40,0.9)', border: '1px solid #c4a16b', borderRadius: '8px', color: '#fff' }} />
                     <Area type="monotone" dataKey="gpa" stroke="#c4a16b" strokeWidth={3} fillOpacity={1} fill="url(#colorGpa)" name="Semester GPA" />
                   </AreaChart>
