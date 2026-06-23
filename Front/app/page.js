@@ -37,7 +37,7 @@ const departments = [
   {
     id: 1,
     name: 'Data Science',
-    image: '/Pics/Data Science.jpg',
+    image: 'Pics/Data Science.jpg',
     overview:
       'Data Science is one of the most modern and fundamental disciplines of the digital age. It focuses on studying and analyzing large datasets using advanced scientific methods to extract patterns and insights that help organizations make precise decisions. The field combines statistics, programming, artificial intelligence, and machine learning to build predictive models and solve complex problems across various industries.',
     subsections: []
@@ -45,7 +45,7 @@ const departments = [
   {
     id: 2,
     name: 'Cybersecurity',
-    image: '/Pics/CS.png',
+    image: 'Pics/CS.png',
     overview:
       'Focuses on protecting systems, networks, and data from digital attacks. Students learn to discover vulnerabilities, prevent risks, and secure digital infrastructure using the latest encryption and forensics tools.',
     subsections: [],
@@ -53,7 +53,7 @@ const departments = [
   {
     id: 3,
     name: 'Artificial Intelligence',
-    image: '/Pics/AI.png',
+    image: 'Pics/AI.png',
     overview:
       'One of the fastest-growing fields worldwide. Students build intelligent systems capable of learning, decision-making, and data analysis using machine learning, deep learning, and computer vision.',
     subsections: [],
@@ -61,7 +61,7 @@ const departments = [
   {
     id: 4,
     name: 'Mechatronics Technology Department',
-    image: '/Pics/mechatronics.png',
+    image: 'Pics/mechatronics.png',
     overview:
       'Combines mechanics, electronics, control systems, and robotics. It is one of the most in-demand specializations for smart production lines and automated factories.',
     subsections: [],
@@ -69,7 +69,7 @@ const departments = [
   {
     id: 5,
     name: 'Electrical Technology Department',
-    image: '/Pics/electrical.png',
+    image: 'Pics/electrical.png',
     overview:
       'Focuses on electrical systems, energy, control, and electronic circuits. Strong job market in electrical companies, power stations, and industrial sectors.',
     subsections: [],
@@ -77,7 +77,7 @@ const departments = [
   {
     id: 6,
     name: 'Mechanical Technology Department',
-    image: '/Pics/mechanical.png',
+    image: 'Pics/mechanical.png',
     overview:
       'Qualifies students in the design, operation, and maintenance of mechanical systems. Among the most demanded fields in heavy and engineering industries.',
     subsections: [],
@@ -85,7 +85,7 @@ const departments = [
   {
     id: 7,
     name: 'Production & Industrial Technology Department',
-    image: '/Pics/production.png',
+    image: 'Pics/production.png',
     overview:
       'Concerned with managing and operating production lines and improving product quality. In demand in large factories and manufacturing and industrial operations.',
     subsections: [],
@@ -93,7 +93,7 @@ const departments = [
   {
     id: 8,
     name: 'Energy Technology Department',
-    image: '/Pics/energy.png',
+    image: 'Pics/energy.png',
     overview:
       'Studies traditional and renewable energy systems such as solar and wind energy. The energy job market is currently experiencing very significant expansion.',
     subsections: [],
@@ -101,7 +101,7 @@ const departments = [
   {
     id: 9,
     name: 'Operation & Maintenance Technology Department',
-    image: '/Pics/maintenance.png',
+    image: 'Pics/maintenance.png',
     overview:
       'Prepares students to work in the maintenance of industrial equipment and machinery according to modern standards. A critical specialization in all factories and engineering projects.',
     subsections: [],
@@ -113,31 +113,31 @@ const newsItems = [
     id: 1,
     title: 'HITU Launches New AI Research Lab',
     text: 'Helwan International Technological University proudly announces the inauguration of its state-of-the-art Artificial Intelligence Research Lab, equipped with the latest GPU clusters and deep learning infrastructure to support student and faculty research projects.',
-    image: '/Pics/AI.png',
+    image: 'Pics/AI.png',
   },
   {
     id: 2,
     title: 'Cybersecurity Championship 2025',
     text: 'HITU students secured first place in the National Cybersecurity Championship 2025, competing against teams from top universities across Egypt. The team demonstrated exceptional skills in penetration testing and digital forensics.',
-    image: '/Pics/CS.png',
+    image: 'Pics/CS.png',
   },
   {
     id: 3,
     title: 'Industry Partnership with Leading Tech Companies',
     text: 'HITU has signed strategic partnership agreements with several leading technology companies to provide internship opportunities and co-op programs for students, bridging the gap between academic learning and real-world industry experience.',
-    image: '/Pics/Data Science.jpg',
+    image: 'Pics/Data Science.jpg',
   },
   {
     id: 4,
     title: 'International Accreditation Achieved',
     text: 'HITU has successfully obtained international accreditation for its engineering and technology programs, reinforcing its commitment to delivering globally recognized, high-quality technical education aligned with international standards.',
-    image: '/Pics/bulding A.jpg',
+    image: 'Pics/bulding A.jpg',
   },
   {
     id: 5,
     title: 'New Mechatronics Workshop Opens',
     text: 'A cutting-edge Mechatronics and Robotics Workshop has opened at HITU, featuring industrial robotic arms, CNC machines, and automated assembly lines. Students can now gain hands-on experience with the same equipment used in top manufacturing facilities worldwide.',
-    image: '/Pics/mechatronics.png',
+    image: 'Pics/mechatronics.png',
   },
 ]
 
@@ -269,7 +269,7 @@ export default function Home() {
     <main
       className="min-h-screen text-[#f8f6f0] relative overflow-x-hidden"
       style={{
-        backgroundImage: "url('/Pics/BackGround.jpeg')",
+        backgroundImage: "url('Pics/BackGround.jpeg')",
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center top',
@@ -340,7 +340,7 @@ export default function Home() {
               
                 {/* Website preview inside laptop */}
                 <div className="relative w-full aspect-[16/9] overflow-hidden">
-                  <Image src="/Pics/bulding A.jpg" alt="HITU preview" fill className="object-cover opacity-80" />
+                  <Image src="Pics/bulding A.jpg" alt="HITU preview" fill className="object-cover opacity-80" />
                   {/* Overlay content mimicking the website */}
                  
                 </div>
@@ -385,7 +385,7 @@ export default function Home() {
 
             <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/40 border border-[#c19a6b]/20 aspect-video relative">
               <Image 
-                src="/Pics/bulding A.jpg" 
+                src="Pics/bulding A.jpg" 
                 alt="University Campus / Lab Photo" 
                 fill
                 className="object-cover"
@@ -450,7 +450,7 @@ export default function Home() {
           {/* Col 1 – Brand */}
           <div className="space-y-4" style={{ direction: 'ltr' }}>
             <div className="flex items-center gap-3">
-              <Image src="/Pics/logo.png" alt="HITU Logo" width={44} height={44} className="rounded-full" />
+              <Image src="Pics/logo.png" alt="HITU Logo" width={44} height={44} className="rounded-full" />
               <span className="text-xl font-bold text-[#c19a6b] tracking-wide">HITU</span>
             </div>
             <p className="text-sm leading-relaxed opacity-70">
