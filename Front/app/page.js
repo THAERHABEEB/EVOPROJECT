@@ -269,7 +269,7 @@ export default function Home() {
     <main
       className="min-h-screen text-[#f8f6f0] relative overflow-x-hidden"
       style={{
-        backgroundImage: "url('Front/public/Pics/BackGround.jpeg')",
+        backgroundImage: "url('Pics/BackGround.jpeg')",
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center top',
@@ -450,7 +450,7 @@ export default function Home() {
           {/* Col 1 – Brand */}
           <div className="space-y-4" style={{ direction: 'ltr' }}>
             <div className="flex items-center gap-3">
-              <Image src="Front/public/Pics/logo.png" alt="HITU Logo" width={44} height={44} className="rounded-full" />
+              <Image src="/Pics/logo.png" alt="HITU Logo" width={44} height={44} className="rounded-full" />
               <span className="text-xl font-bold text-[#c19a6b] tracking-wide">HITU</span>
             </div>
             <p className="text-sm leading-relaxed opacity-70">
