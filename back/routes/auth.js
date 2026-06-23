@@ -1,29 +1,33 @@
-const express = require('express');
-const router = express.Router();
-const jwt = require('jsonwebtoken');
-const { getOne, runQuery } = require('../config/db.js');
-
-// POST /api/auth/login - Login User (Plain Text & ID based)
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { id, password } = req.body; // استقبال id ليتوافق مع الفرونت إند
+    const { id, password } = req.body;
 
     if (!id || !password) {
       return res.status(400).json({ status: 'error', error: 'Missing fields' });
     }
 
-    // البحث في قاعدة البيانات باستخدام الـ id
-    const user = await getOne('SELECT * FROM "USER" WHERE id = $1', [id]);
+    // 1. تحويل الـ id إلى رقم (لأن قاعدة البيانات تحقنه كـ serial/integer)
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(401).json({ status: 'error', error: 'Invalid ID format' });
+    }
+
+    // 2. جلب المستخدم من قاعدة البيانات
+    const user = await getOne('SELECT * FROM "USER" WHERE id = $1', [userId]);
     if (!user) {
       return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
     }
 
-    // مقارنة نصية مباشرة لـ Password بدون تشفير (Plain Text)
-    if (String(password) !== String(user.password)) {
+    // 3. المقارنة الصارمة بعد تحويل القيمتين إلى نصوص عادية (Plain Text) لضمان عدم حدوث تعارض أنواع
+    const inputPassword = String(password).trim();
+    const dbPassword = String(user.password).trim();
+
+    if (inputPassword !== dbPassword) {
       return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
     }
 
-    // Generate JWT Token
+    // 4. إنشاء الـ Token إذا تطابقت البيانات
     const secretKey = process.env.JWT_SECRET || 'your_super_secret_key';
     const token = jwt.sign(
       { id: user.id, role: user.role }, 
@@ -31,17 +35,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // التحقق من التخصص (لوحة التحكم الطالب)
     let needsSpecialization = false;
     if (user.role === 'student' && !user.specialization) {
       needsSpecialization = true;
     }
 
-    // Set Cookies لضمان عمل الـ Middleware
+    // إرسال الكوكيز للمتصفح
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
     res.cookie('userRole', user.role, { maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.cookie('hasSpecialization', !needsSpecialization, { maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-    await runQuery('UPDATE "USER" SET last_login = NOW() WHERE id = $1', [user.id]);
 
     res.json({ 
       status: 'success', 
@@ -54,5 +56,3 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ status: 'error', error: 'Server error' });
   }
 });
-
-module.exports = router;
