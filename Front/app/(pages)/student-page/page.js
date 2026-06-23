@@ -51,7 +51,7 @@ export default function StudentPage() {
           image: data.photo || 'Pics/student.jpg'
         })
         // If specialization is not set, send student to selection page (first-time only)
-        if (!data.specialization) {
+        if (!data.department) {
           router.push('/student-page/select-specialization')
           return
         }
