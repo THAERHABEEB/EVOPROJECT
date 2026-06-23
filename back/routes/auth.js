@@ -1,110 +1,52 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { getOne, runQuery } = require('../config/db.js');
+const { getOne } = require('../config/db.js');
 
-// POST /api/auth/login - Login User
 router.post('/login', async (req, res) => {
   try {
-    const { name, password } = req.body;
+    const { id, password } = req.body;
 
-    // 1. Check if user exists
-    const user = await getOne('SELECT * FROM "USER" WHERE name = $1', [name]);
+    if (!id || !password) {
+      return res.status(400).json({ status: 'error', error: 'Missing fields', data: null });
+    }
+
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) {
+      return res.status(401).json({ status: 'error', error: 'Invalid ID format', data: null });
+    }
+
+    const user = await getOne('SELECT * FROM "USER" WHERE id = $1', [userId]);
     if (!user) {
-      return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
+      return res.status(401).json({ status: 'error', error: 'Invalid credentials', data: null });
     }
 
-    // 2. Check password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ status: 'error', error: 'Invalid credentials' });
+    // مقارنة نصوص صريحة ونظيفة بدون مسافات مخفية
+    if (String(password).trim() !== String(user.password).trim()) {
+      return res.status(401).json({ status: 'error', error: 'Invalid credentials', data: null });
     }
 
-    // 3. Generate JWT Token
     const secretKey = process.env.JWT_SECRET || 'your_super_secret_key';
-    const token = jwt.sign(
-      { id: user.id, role: user.role }, 
-      secretKey, 
-      { expiresIn: '7d' }
-    );
+    const token = jwt.sign({ id: user.id, role: user.role }, secretKey, { expiresIn: '7d' });
 
-    // 4. WORKFLOW 3 LOGIC: Check if student needs specialization selection
     let needsSpecialization = false;
     if (user.role === 'student' && !user.specialization) {
       needsSpecialization = true;
     }
 
-    // 5. Set Cookies for Frontend Middleware
-    // Note: 'secure: true' is recommended for production (HTTPS)
-    res.cookie('token', token, { 
-      httpOnly: true, 
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax'
-    });
-    
-    res.cookie('userRole', user.role, { 
-      maxAge: 7 * 24 * 60 * 60 * 1000 
-    });
+    res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });
+    res.cookie('userRole', user.role, { maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-    // This cookie tells the frontend middleware if redirection is needed
-    res.cookie('hasSpecialization', !needsSpecialization, { 
-      maxAge: 7 * 24 * 60 * 60 * 1000 
-    });
-
-    // Update last login time
-    await runQuery('UPDATE "USER" SET last_login = NOW() WHERE id = $1', [user.id]);
-
-    res.json({ 
+    return res.json({ 
       status: 'success', 
-      data: { 
-        id: user.id, 
-        name: user.name, 
-        role: user.role,
-        needsSpecialization: needsSpecialization 
-      }, 
+      data: { id: user.id, name: user.name, role: user.role, needsSpecialization }, 
       token 
     });
 
   } catch (error) {
     console.error('Login Error:', error);
-    res.status(500).json({ status: 'error', error: 'Server error' });
+    return res.status(500).json({ status: 'error', error: 'Server error', data: null });
   }
-});
-
-// POST /api/auth/register - Create User (Optional, if you need registration)
-router.post('/register', async (req, res) => {
-  try {
-    const { name, password, role } = req.body;
-
-    if (!name || !password || !role) {
-      return res.status(400).json({ status: 'error', error: 'Missing fields' });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Insert User
-    const result = await runQuery(
-      'INSERT INTO "USER" (name, password, role, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *',
-      [name, hashedPassword, role]
-    );
-
-    res.status(201).json({ status: 'success', data: result.rows[0] });
-
-  } catch (error) {
-    console.error('Register Error:', error);
-    res.status(500).json({ status: 'error', error: 'Database error' });
-  }
-});
-
-// POST /api/auth/logout
-router.post('/logout', (req, res) => {
-  res.clearCookie('token');
-  res.clearCookie('userRole');
-  res.clearCookie('hasSpecialization');
-  res.json({ status: 'success', message: 'Logged out' });
 });
 
 module.exports = router;

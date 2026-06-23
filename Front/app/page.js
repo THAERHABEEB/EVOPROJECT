@@ -269,7 +269,7 @@ export default function Home() {
     <main
       className="min-h-screen text-[#f8f6f0] relative overflow-x-hidden"
       style={{
-        backgroundImage: "url('/Pics/BackGround.jpeg')",
+        backgroundImage: "url('Pics/BackGround.jpeg')",
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center top',
