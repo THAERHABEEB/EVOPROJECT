@@ -209,11 +209,15 @@ router.get('/:id/statistics', async (req, res) => {
 
     // 5. Assignment Status
     const quizzes = await getAll('SELECT * FROM quiz_submission WHERE student_id = $1', [studentId]);
-    const assignmentStatus = [
-      { name: 'Submitted', value: quizzes.length || 0, color: '#6fc3ff' },
-      { name: 'Pending', value: 0, color: '#f39c12' },
-      { name: 'Missed', value: 0, color: '#ff6b6b' },
-    ];
+    const assignmentStatus = quizzes.length > 0 
+      ? [
+          { name: 'Submitted', value: quizzes.length, color: '#6fc3ff' },
+          { name: 'Pending', value: 0, color: '#f39c12' },
+          { name: 'Missed', value: 0, color: '#ff6b6b' },
+        ]
+      : [
+          { name: 'No Data', value: 1, color: 'rgba(255,255,255,0.1)' }
+        ];
     
     const activityData = [
       { week: 'W1', assignments: 0, quizzes: 0 },
