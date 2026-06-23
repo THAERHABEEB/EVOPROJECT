@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  //output: 'export',
   reactStrictMode: true,
   images: {
     domains: ['scontent.fcai30-1.fna.fbcdn.net'],
