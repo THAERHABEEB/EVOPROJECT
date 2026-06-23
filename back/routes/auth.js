@@ -30,8 +30,11 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, secretKey, { expiresIn: '7d' });
 
     let needsSpecialization = false;
-    if (user.role === 'student' && !user.specialization) {
-      needsSpecialization = true;
+    if (user.role === 'student') {
+      const studentInfo = await getOne('SELECT department FROM "students" WHERE user_id = $1', [user.id]);
+      if (!studentInfo || !studentInfo.department) {
+        needsSpecialization = true;
+      }
     }
 
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: 'lax' });

@@ -74,7 +74,7 @@ router.put('/:id', async (req, res) => {
 router.put('/:id/specialization', async (req, res) => {
   try {
     const { specialization } = req.body;
-    const result = await runQuery('UPDATE "students" SET specialization = $1 WHERE id = $2 RETURNING *', [specialization, req.params.id]);
+    const result = await runQuery('UPDATE "students" SET department = $1 WHERE user_id = $2 RETURNING *', [specialization, req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ status: 'error', error: 'Student not found' });
     res.json({ status: 'success', data: result.rows[0] });
   } catch (error) {
@@ -86,9 +86,12 @@ router.put('/:id/specialization', async (req, res) => {
 // GET - Academic roadmap (8 semesters) with progress based on current_semester
 router.get('/:id/roadmap', async (req, res) => {
   try {
-    const student = await getOne('SELECT id, current_semester, specialization FROM "students" WHERE id = $1', [req.params.id]);
+    const student = await getOne('SELECT current_semester, department as specialization FROM "students" WHERE user_id = $1', [req.params.id]);
     if (!student) return res.status(404).json({ status: 'error', error: 'Student not found' });
-    const current = Number(student.current_semester) || 0;
+    
+    const currentStr = String(student.current_semester).replace(/[^0-9]/g, '');
+    const current = Number(currentStr) || 0;
+    
     const semesters = [];
     for (let i = 1; i <= 8; i++) {
       semesters.push({ semester: i, completed: i <= current });
