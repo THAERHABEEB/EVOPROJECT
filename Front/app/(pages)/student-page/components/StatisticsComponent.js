@@ -1,3 +1,4 @@
+'use client'
 import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -115,7 +116,7 @@ export default function StatisticsComponent({ userId }) {
                 <h4 className="mb-4 text-center" style={{ color: '#fff', fontWeight: 600 }}>Assignment Status</h4>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
-                    <Pie data={stats.assignmentStatus} innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value" stroke="none">
+                    <Pie data={stats.assignmentStatus} innerRadius={70} outerRadius={100} dataKey="value" stroke="none">
                       {stats.assignmentStatus.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                     </Pie>
                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'rgba(10,20,40,0.9)', border: '1px solid rgba(111,195,255,0.5)', borderRadius: '8px', color: '#fff' }} />
