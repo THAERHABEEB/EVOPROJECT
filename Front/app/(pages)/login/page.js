@@ -32,7 +32,8 @@ export default function LoginPage() {
       const result = await api.auth.login(formData)
 
       if (result.status === 'success') {
-        const { token, user } = result.data
+        const user = result.data;
+        const token = result.token;
         
         // Store token and user info
         localStorage.setItem('token', token)
