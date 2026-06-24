@@ -7,11 +7,11 @@ const authenticateToken = require('../middleware/auth.js');
 router.post('/rfid', async (req, res) => {
   try {
     const { uid, type } = req.body;
-    if (!uid) return res.status(400).json({ error: 'Missing uid' });
+    if (!uid) return res.status(400).json({ status: 'error', error: 'Missing uid' });
 
     // 1. Find Student
     const student = await getOne('SELECT * FROM students WHERE code = $1', [uid]);
-    if (!student) return res.status(404).json({ error: 'Unknown Card' });
+    if (!student) return res.status(404).json({ status: 'error', error: 'Unknown Card' });
 
     // 2. Get current Egypt Time (approximate by using server time assuming UTC and adding 2 or 3 hrs, 
     // or better just use the day/hour/min from the request if the ESP32 sent it, but the ESP32 currently doesn't send time, it relies on its own time.
@@ -71,7 +71,7 @@ router.post('/rfid', async (req, res) => {
     res.json({ status: 'success', student: student.name, subject: course ? course.name : 'Unknown', doctor: doctor ? doctor.name : 'Unknown' });
   } catch (error) {
     console.error('RFID Error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ status: 'error', error: 'Server error' });
   }
 });
 
