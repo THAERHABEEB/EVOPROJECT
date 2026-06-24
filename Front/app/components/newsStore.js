@@ -1,7 +1,7 @@
 // app/store/newsStore.js
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const defaultNews = [
   {
@@ -56,7 +56,29 @@ const fallbackStore = {
 const NewsContext = createContext(null);
 
 export function NewsProvider({ children }) {
-  const [newsList, setNewsList] = useState(defaultNews);
+  const [newsList, setNewsList] = useState([]);
+
+  useEffect(() => {
+    import('@/lib/api').then(({ api }) => {
+      api.news.getAll().then((res) => {
+        if (res.status === 'success' && res.data) {
+          // Format data to match old expected format
+          const formatted = res.data.map(item => ({
+            id: item.id,
+            title: item.title,
+            date: new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+            image: item.img_url || '/Pics/1.jpg',
+            description: item.content || item.description || '',
+            category: item.type_size === 'large' ? 'Major' : 'General',
+            videoLink: "",
+            sourceLink: "",
+          }));
+          setNewsList(formatted);
+          _fallbackNews = formatted;
+        }
+      }).catch(err => console.error('Error fetching news:', err));
+    });
+  }, []);
 
   function addNews(item) {
     setNewsList((prev) => [item, ...prev]);

@@ -94,6 +94,8 @@ export const api = {
   },
   enrollments: createResource('enrollments'),
   faq: createResource('faq'),
+  library: createResource('library'),
+  news: createResource('news'),
   grades: {
     ...createResource('grade'),
     getByStudentId: (studentId) => request(`/grade/student/${studentId}`),

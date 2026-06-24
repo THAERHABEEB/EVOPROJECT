@@ -25,60 +25,25 @@ export default function LibraryPage() {
     "Operation & Maintenance"
   ];
 
-  const books = [
-    {
-      id: 1,
-      title: "AI World",
-      category: "Artificial Intelligence",
-      image: "/Pics/1.jpg",
-      readUrl:
-        "https://docs.google.com/viewerng/viewer?hl=ar&t=19&url=https://www.alarabimag.com/books/22375.pdf",
-      downloadUrl: "#",
-    },
-    {
-      id: 2,
-      title: "Artificial Intelligence",
-      category: "Artificial Intelligence",
-      image: "/Pics/2.jpg",
-      readUrl: "#",
-      downloadUrl: "#",
-    },
-    {
-      id: 3,
-      title: "Cyber Security Guide",
-      category: "Cybersecurity",
-      image: "/Pics/3.jpg",
-      readUrl: "#",
-      downloadUrl: "#",
-    },
-    {
-      id: 4,
-      title: "Data Science Fundamentals",
-      category: "Data Science",
-      image: "/Pics/4.jpg",
-      readUrl: "#",
-      downloadUrl: "#",
-    },
-    {
-      id: 5,
-      title: "Creative Autoronics",
-      category: "Electrical",
-      image: "/Pics/5.jpg",
-      readUrl: "#",
-      downloadUrl: "#",
-    },
-    {
-      id: 6,
-      title: "Mechatronic Systems",
-      category: "Mechatronics",
-      image: "/Pics/6.jpg",
-      readUrl: "#",
-      downloadUrl: "#",
-    },
-  ];
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    import('@/lib/api').then(({ api }) => {
+      api.library.getAll().then((res) => {
+        if (res.status === 'success' && res.data) {
+          setBooks(res.data);
+        }
+        setLoading(false);
+      }).catch(err => {
+        console.error('Error fetching library:', err);
+        setLoading(false);
+      });
+    });
+  }, []);
 
   const filteredBooks = books.filter((book) => {
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = book.title?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || book.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -212,11 +177,13 @@ export default function LibraryPage() {
 
 
       {/* Books Grid */}
-
+      {loading ? (
+        <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.2rem', marginTop: '50px' }}>Loading books...</div>
+      ) : (
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,240px)",
+          gridTemplateColumns: "repeat(auto-fill,minmax(240px, 1fr))",
           gap: "35px",
           justifyContent: "center",
         }}
@@ -248,10 +215,11 @@ export default function LibraryPage() {
           >
 
             {/* Book Cover Full Width */}
-            <div style={{ width: "100%", height: "220px", overflow: "hidden" }}>
+            <div style={{ width: "100%", height: "220px", overflow: "hidden", background: "#f0f0f0" }}>
               <img
-                src={book.image}
+                src={book.coverimage || book.image || '/Pics/1.jpg'}
                 alt={book.title}
+                onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/1.jpg'; }}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -262,27 +230,26 @@ export default function LibraryPage() {
 
             {/* Card Content with Padding */}
             <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
-              <h3 style={{ color: "#0b3a6e", marginBottom: "auto", fontSize: "1.2rem", fontWeight: "bold" }}>
+              <h3 style={{ color: "#0b3a6e", marginBottom: "5px", fontSize: "1.1rem", fontWeight: "bold" }}>
                 {book.title}
               </h3>
+              <p style={{ color: "#666", fontSize: "0.9rem", marginBottom: "auto" }}>
+                {book.author}
+              </p>
 
               <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "20px" }}>
 
-                {book.id === 1 ? (
-                  <a href={book.readUrl} target="_blank" rel="noreferrer" style={{flex: 1}}>
-                    <button style={{...readBtn, width: '100%'}}>
-                      Read
-                    </button>
-                  </a>
-                ) : (
-                  <button style={{...readBtn, flex: 1}}>
+                <a href={book.pdfurl || book.readUrl || '#'} target="_blank" rel="noreferrer" style={{flex: 1, textDecoration: 'none'}}>
+                  <button style={{...readBtn, width: '100%'}}>
                     Read
                   </button>
-                )}
+                </a>
 
-                <button style={{...downloadBtn, flex: 1}}>
-                  Download
-                </button>
+                <a href={book.pdfurl || book.downloadUrl || '#'} download target="_blank" rel="noreferrer" style={{flex: 1, textDecoration: 'none'}}>
+                  <button style={{...downloadBtn, width: '100%'}}>
+                    Download
+                  </button>
+                </a>
 
               </div>
             </div>
@@ -292,6 +259,7 @@ export default function LibraryPage() {
         ))}
 
       </div>
+      )}
 
 
       </div>
