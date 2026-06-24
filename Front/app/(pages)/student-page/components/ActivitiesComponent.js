@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { CalendarIcon } from '@/app/components/Icons'
+import api from '../../../../lib/api'
 
 export default function ActivitiesComponent() {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expandedActivityId, setExpandedActivityId] = useState(null)
 
   useEffect(() => {
     fetchActivities()
@@ -11,43 +13,17 @@ export default function ActivitiesComponent() {
 
   const fetchActivities = async () => {
     try {
-      // TODO: استبدل بـ API call الفعلي
-      setActivities([
-        { 
-          id: 1, 
-          title: 'Programming Competition', 
-          date: '2024-03-15', 
-          status: 'upcoming',
-          category: 'Competitions',
-          description: 'Programming competition on algorithms'
-        },
-        { 
-          id: 2, 
-          title: 'Guest Lecture - AI in Medicine', 
-          date: '2024-03-10',
-          status: 'completed',
-          category: 'Guest Lectures',
-          description: 'Lecture by AI specialist in medical field'
-        },
-        { 
-          id: 3, 
-          title: 'Workshop - Web Development', 
-          date: '2024-03-20',
-          status: 'upcoming',
-          category: 'Workshops',
-          description: 'Advanced workshops in web development'
-        },
-        { 
-          id: 4, 
-          title: 'Graduation Ceremony', 
-          date: '2024-05-01',
-          status: 'upcoming',
-          category: 'Celebrations',
-          description: 'Graduation celebration of current batch'
-        },
-      ])
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+      const res = await api.students.getActivities(userId);
+      if (res.status === 'success' && res.data) {
+        setActivities(res.data);
+      }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error fetching activities:', err)
     } finally {
       setLoading(false)
     }
@@ -61,6 +37,23 @@ export default function ActivitiesComponent() {
     return status === 'upcoming' ? 'Coming Soon' : 'Completed'
   }
 
+  const toggleDetails = (id) => {
+    if (expandedActivityId === id) {
+      setExpandedActivityId(null);
+    } else {
+      setExpandedActivityId(id);
+    }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBA';
+    try {
+      return new Date(dateString).toISOString().split('T')[0];
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   return (
     <>
       {loading ? (
@@ -71,13 +64,16 @@ export default function ActivitiesComponent() {
           
           <div className="row g-4">
             {activities.map((activity) => (
-              <div key={activity.id} className="col-lg-6">
+              <div key={activity.id} className="col-lg-6 col-md-6 col-sm-12">
                 <div style={{
                   background: 'rgba(255,255,255,0.05)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid #6fc3ff',
                   borderRadius: '8px',
-                  padding: '20px'
+                  padding: '20px',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
                 }}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
                     <div>
@@ -89,7 +85,17 @@ export default function ActivitiesComponent() {
                     </span>
                   </div>
                   
-                  <p style={{color: '#ccc', margin: '10px 0'}}>{activity.description}</p>
+                  {/* Activity Description (Expandable) */}
+                  <div style={{
+                    maxHeight: expandedActivityId === activity.id ? '500px' : '0',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease-in-out',
+                    marginTop: expandedActivityId === activity.id ? '15px' : '0'
+                  }}>
+                    <p style={{color: '#ccc', margin: '0', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '0.9rem'}}>
+                      {activity.description}
+                    </p>
+                  </div>
                   
                   <div style={{
                     display: 'flex',
@@ -97,11 +103,14 @@ export default function ActivitiesComponent() {
                     alignItems: 'center',
                     borderTop: '1px solid #333',
                     paddingTop: '10px',
-                    marginTop: '10px'
+                    marginTop: 'auto' // Push to bottom
                   }}>
-                    <small style={{color: '#999'}}><CalendarIcon size={13} color="#999" style={{marginRight: '4px'}} />{activity.date}</small>
-                    <button className="btn btn-outline-info btn-sm">
-                      Details
+                    <small style={{color: '#999'}}><CalendarIcon size={13} color="#999" style={{marginRight: '4px'}} />{formatDate(activity.date)}</small>
+                    <button 
+                      className="btn btn-outline-info btn-sm"
+                      onClick={() => toggleDetails(activity.id)}
+                    >
+                      {expandedActivityId === activity.id ? 'Hide Details' : 'Details'}
                     </button>
                   </div>
                 </div>
@@ -110,8 +119,8 @@ export default function ActivitiesComponent() {
           </div>
 
           {activities.length === 0 && (
-            <div className="alert alert-info mt-4">
-              No activities currently available
+            <div className="alert alert-info mt-4" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid #6fc3ff' }}>
+              No activities currently available for your profile.
             </div>
           )}
         </>
