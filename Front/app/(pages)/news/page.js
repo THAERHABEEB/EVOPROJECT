@@ -9,7 +9,8 @@ import { useNewsStore } from '@/app/components/newsStore';
 
 export default function NewsPage() {
   const router = useRouter();
-  const { newsList: news } = useNewsStore();
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -18,10 +19,32 @@ export default function NewsPage() {
   useEffect(() => {
     const handleMouseMove = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
     window.addEventListener('mousemove', handleMouseMove);
+
+    // Fetch news from API
+    import('@/lib/api').then(({ api }) => {
+      api.news.getAll().then((res) => {
+        if (res.status === 'success' && res.data) {
+          const formatted = res.data.map(item => ({
+            id: item.id,
+            title: item.title,
+            date: new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+            img_url: item.img_url || '/Pics/1.jpg',
+            description: item.content || item.description || '',
+            category: item.type_size === 'large' ? 'Major' : 'General',
+          }));
+          setNews(formatted);
+        }
+        setLoading(false);
+      }).catch(err => {
+        console.error('Error fetching news:', err);
+        setLoading(false);
+      });
+    });
+
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const categories = ['All', ...new Set(news.map(item => item.category))];
+  const categories = ['All', ...new Set(news.map(item => item.category).filter(Boolean))];
 
   const filteredNews = news.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,9 +114,19 @@ export default function NewsPage() {
 
       {/* ── News Grid ── */}
       <section className="newsGrid">
-        {filteredNews.map((item) => (
-          <NewsCard key={item.id} news={item} />
-        ))}
+        {loading ? (
+          <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '50px', fontSize: '1.2rem', color: '#666' }}>
+            Loading latest news...
+          </div>
+        ) : filteredNews.length > 0 ? (
+          filteredNews.map((item) => (
+            <NewsCard key={item.id} news={item} />
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '50px', fontSize: '1.2rem', color: '#666' }}>
+            No news found matching your filters.
+          </div>
+        )}
       </section>
 
       <CircularMenu />
