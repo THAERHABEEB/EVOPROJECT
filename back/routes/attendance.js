@@ -17,10 +17,6 @@ router.post('/rfid', async (req, res) => {
     // or better just use the day/hour/min from the request if the ESP32 sent it, but the ESP32 currently doesn't send time, it relies on its own time.
     // Since the backend is in UTC, we can convert it to Africa/Cairo.
     const now = new Date();
-    const options = { timeZone: 'Africa/Cairo', hour12: false };
-    const dayOfWeek = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', weekday: 'i' }).format(now)); 
-    // JS getDay(): Sun=0, Mon=1, Sat=6. Intl weekday: 'i' is not standard. Let's just use toLocaleString:
-    // A safer way:
     const cairoString = now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' });
     const cairoDate = new Date(cairoString);
     const day = cairoDate.getDay(); // 0-6
