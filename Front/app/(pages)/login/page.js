@@ -102,8 +102,9 @@ export default function LoginPage() {
         }
 
         .container {
-          width: 1200px;
-          height: 600px;
+          width: 90%;
+          max-width: 1200px;
+          min-height: 600px;
           display: flex;
           border-radius: 15px;
           overflow: hidden;
@@ -193,7 +194,7 @@ export default function LoginPage() {
           margin-top: 10px;
           padding: 12px;
           border: none;
-          border-radius: 30%;
+          border-radius: 25px;
           background: linear-gradient(90deg, #caa13c, #e4bd63);
           color: white;
           font-size: 16px;
@@ -202,12 +203,52 @@ export default function LoginPage() {
           width: 100%;
         }
 
-        .login-btn:hover {
+        .login-btn:hover, .learn-btn:hover {
           opacity: 0.9;
         }
 
-        .learn-btn:hover {
-          opacity: 0.9;
+        @media (max-width: 992px) {
+          .left-section {
+            padding: 40px;
+          }
+          .left-section h1 {
+            font-size: 40px;
+          }
+          .left-section p {
+            width: 100%;
+          }
+          .login-box {
+            margin: auto 20px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .container {
+            flex-direction: column;
+            min-height: auto;
+            margin: 20px;
+          }
+          .left-section {
+            padding: 30px;
+            padding-right: 30px;
+            text-align: center;
+            align-items: center;
+            background-size: 200px !important;
+            background-position: top center !important;
+          }
+          .left-section h1 {
+            font-size: 32px;
+            margin-top: 80px;
+          }
+          .left-section p {
+            font-size: 16px;
+            margin-bottom: 20px;
+          }
+          .login-box {
+            width: auto;
+            margin: 0 20px 30px 20px;
+            padding: 25px;
+          }
         }
       `}</style>
 
