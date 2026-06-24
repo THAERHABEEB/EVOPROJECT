@@ -69,14 +69,28 @@ export default function ActivitiesComponent() {
                   background: 'rgba(255,255,255,0.05)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid #6fc3ff',
-                  borderRadius: '8px',
-                  padding: '20px',
+                  borderRadius: '12px',
                   height: '100%',
                   display: 'flex',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
+                  overflow: 'hidden'
                 }}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                    <div>
+                  {activity.img_url && (
+                    <img 
+                      src={activity.img_url} 
+                      alt={activity.title} 
+                      style={{
+                        width: '100%',
+                        height: '180px',
+                        objectFit: 'cover',
+                        borderBottom: '1px solid rgba(111, 195, 255, 0.3)'
+                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  )}
+                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                      <div>
                       <h5 style={{color: '#6fc3ff'}}>{activity.title}</h5>
                       <small style={{color: '#999'}}>Category: {activity.category}</small>
                     </div>
@@ -113,6 +127,7 @@ export default function ActivitiesComponent() {
                       {expandedActivityId === activity.id ? 'Hide Details' : 'Details'}
                     </button>
                   </div>
+                </div>
                 </div>
               </div>
             ))}
