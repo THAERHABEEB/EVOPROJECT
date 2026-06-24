@@ -29,7 +29,6 @@ export default function StudentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
-  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false)
 
   const fetchStudentInfo = async () => {
     try {
@@ -143,25 +142,10 @@ export default function StudentPage() {
       <div id="cursor-glow"></div>
 
       {/* Sidebar Overlay - Mobile Only */}
-      {!isDesktop && sidebarOpen && (
-        <div 
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            top: '70px',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(3px)',
-            zIndex: 1000,
-            transition: 'opacity 0.3s ease'
-          }}
-        />
-      )}
 
-      {/* Main Layout */}
-      <div style={{ display: 'flex', flexDirection: isDesktop ? 'row-reverse' : 'row', minHeight: 'calc(100vh - 70px)', width: '100%', position: 'relative' }}>
+
+      {/* Desktop Layout */}
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 70px)', width: '100%' }}>
         <div className="sidebar" style={{
           width: isDesktop ? '320px' : '280px',
           position: isDesktop ? 'relative' : 'fixed',
@@ -179,22 +163,15 @@ export default function StudentPage() {
         }}>
           <div
             className={`profile${activeTab === 'profile' ? ' profile--active' : ''}`}
-            onClick={(e) => {
-              if (e.target.tagName !== 'IMG') {
-                setActiveTab('profile')
-                if (!isDesktop) setSidebarOpen(false)
-              }
+            onClick={() => {
+              setActiveTab('profile')
+              if (!isDesktop) setSidebarOpen(false)
             }}
             title="View full profile"
           >
             <img 
               src={studentInfo?.image || '/Pics/student.jpg'} 
               alt="Student" 
-              style={{ cursor: 'zoom-in' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsPhotoExpanded(true);
-              }}
               onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
             />
             <div>
@@ -327,79 +304,7 @@ export default function StudentPage() {
             padding: 20px;
           }
         }
-        
-        @keyframes popIn {
-          from { opacity: 0; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1); }
-        }
       `}</style>
-
-      {/* Expanded Photo Modal */}
-      {isPhotoExpanded && (
-        <div 
-          onClick={() => setIsPhotoExpanded(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            zIndex: 99999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            cursor: 'zoom-out',
-            backdropFilter: 'blur(5px)'
-          }}
-        >
-          <img
-            src={studentInfo?.image || '/Pics/student.jpg'}
-            alt="Student Enlarged"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxHeight: '85vh',
-              maxWidth: '90vw',
-              borderRadius: '20px',
-              border: '4px solid #c19a6b',
-              boxShadow: '0 0 40px rgba(193,154,107,0.5)',
-              objectFit: 'contain',
-              cursor: 'default',
-              animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            }}
-          />
-          <button 
-            onClick={() => setIsPhotoExpanded(false)}
-            style={{
-              position: 'absolute',
-              top: '25px',
-              right: '35px',
-              background: 'rgba(0,0,0,0.5)',
-              border: '2px solid #c19a6b',
-              color: '#fff',
-              fontSize: '24px',
-              width: '45px',
-              height: '45px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#c19a6b';
-              e.currentTarget.style.color = '#000';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(0,0,0,0.5)';
-              e.currentTarget.style.color = '#fff';
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       <CircularMenu />
     </>
