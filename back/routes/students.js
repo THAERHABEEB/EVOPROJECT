@@ -18,6 +18,8 @@ router.get('/', async (req, res) => {
 });
 
 // GET a single record by ID
+
+
 router.get('/:id', async (req, res) => {
   try {
     const data = await getOne('SELECT * FROM "students" WHERE id = $1', [req.params.id]);
@@ -206,22 +208,28 @@ router.get('/:id/statistics', async (req, res) => {
     const ranking = student.class_ranking || 'N/A';
 
     // 4. Attendance
-    const attendanceRecords = await getAll('SELECT * FROM attendance WHERE student_id = $1', [studentId]);
-    let attendanceTrend = [];
-    if (attendanceRecords.length === 0) {
-      attendanceTrend = [
-        { week: 'Week 1', present: 0, absent: 0 },
-        { week: 'Week 2', present: 0, absent: 0 },
-        { week: 'Week 3', present: 0, absent: 0 },
-        { week: 'Week 4', present: 0, absent: 0 },
-      ];
-    } else {
-      let presentCount = attendanceRecords.filter(a => String(a.status).toLowerCase() === 'present').length;
-      let absentCount = attendanceRecords.filter(a => String(a.status).toLowerCase() === 'absent').length;
-      attendanceTrend = [
-        { week: 'Total', present: presentCount, absent: absentCount }
-      ];
+    const weekRecords = await getAll(`
+      SELECT 
+        EXTRACT(WEEK FROM join_time) as week_num,
+        COUNT(CASE WHEN status='Present' THEN 1 END) as present_count,
+        COUNT(CASE WHEN status='Absent' THEN 1 END) as absent_count
+      FROM attendance 
+      WHERE student_id = $1
+      GROUP BY week_num
+      ORDER BY week_num DESC
+      LIMIT 4
+    `, [studentId]);
+
+    let attendanceTrend = weekRecords.map((r, idx) => ({
+      week: `Week ${idx + 1}`,
+      present: parseInt(r.present_count || 0),
+      absent: parseInt(r.absent_count || 0)
+    })).reverse();
+
+    while (attendanceTrend.length < 4) {
+      attendanceTrend.unshift({ week: `Week ${4 - attendanceTrend.length}`, present: 0, absent: 0 });
     }
+    attendanceTrend.forEach((t, i) => t.week = `Week ${i + 1}`);
 
     // 5. Assignment Status
     const quizzes = await getAll('SELECT * FROM quiz_submission WHERE student_id = $1', [studentId]);
