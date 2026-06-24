@@ -15,6 +15,7 @@ export default function DoctorPage() {
   const [showWeeklyModal, setShowWeeklyModal] = useState(false)
   const [doctorData, setDoctorData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false)
 
   useEffect(() => {
     const fetchDoctorData = async () => {
@@ -142,7 +143,14 @@ export default function DoctorPage() {
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, transparent 0%, rgba(21, 32, 54, 0.6) 40%, rgba(21, 32, 54, 0.95) 100%)' }}></div>
           <div className="position-relative d-flex flex-column flex-md-row-reverse align-items-center align-items-md-start" style={{ zIndex: 1 }}>
-            <img src={doctorData?.photo || "/Pics/student.jpg"} alt={doctorData?.name || "Dr. Sherif Ibrahim"} style={{ width: '130px', height: '130px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', marginLeft: '30px', marginBottom: '15px', transition: 'transform 0.3s', objectFit: 'cover' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
+            <img 
+              src={doctorData?.photo || "/Pics/student.jpg"} 
+              alt={doctorData?.name || "Dr. Sherif Ibrahim"} 
+              style={{ width: '130px', height: '130px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', marginLeft: '30px', marginBottom: '15px', transition: 'transform 0.3s', objectFit: 'cover', cursor: 'zoom-in' }} 
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} 
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} 
+              onClick={() => setIsPhotoExpanded(true)}
+            />
             <div className="text-center text-md-end mt-2">
               <h2 style={{ fontWeight: 700, marginBottom: '5px', fontSize: '2.2rem' }}>{doctorData?.name || "Dr. Sherif Ibrahim"}</h2>
               <p style={{ fontSize: '1.2rem', marginBottom: '2px', color: '#d1e8ff' }}>{doctorData?.qualification || "Assistant Professor"}</p>
@@ -524,6 +532,80 @@ export default function DoctorPage() {
           </div>
         )
       }
+
+      {/* Expanded Photo Modal */}
+      {isPhotoExpanded && (
+        <div 
+          onClick={() => setIsPhotoExpanded(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            zIndex: 99999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'zoom-out',
+            backdropFilter: 'blur(5px)'
+          }}
+        >
+          <img
+            src={doctorData?.photo || "/Pics/student.jpg"}
+            alt="Doctor Enlarged"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxHeight: '85vh',
+              maxWidth: '90vw',
+              borderRadius: '20px',
+              border: '4px solid #c19a6b',
+              boxShadow: '0 0 40px rgba(193,154,107,0.5)',
+              objectFit: 'contain',
+              cursor: 'default',
+              animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}
+          />
+          <button 
+            onClick={() => setIsPhotoExpanded(false)}
+            style={{
+              position: 'absolute',
+              top: '25px',
+              right: '35px',
+              background: 'rgba(0,0,0,0.5)',
+              border: '2px solid #c19a6b',
+              color: '#fff',
+              fontSize: '24px',
+              width: '45px',
+              height: '45px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#c19a6b';
+              e.currentTarget.style.color = '#000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0,0,0,0.5)';
+              e.currentTarget.style.color = '#fff';
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes popIn {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
       <CircularMenu />
     </>

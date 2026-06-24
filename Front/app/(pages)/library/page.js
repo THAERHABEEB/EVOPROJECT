@@ -55,7 +55,7 @@ export default function LibraryPage() {
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "50px", position: "relative" }}>
 
-        <div style={{ position: "relative", display: "flex", gap: "12px", alignItems: "center" }}>
+        <div style={{ position: "relative", display: "flex", gap: "12px", alignItems: "center", width: "100%", maxWidth: "450px" }}>
           
           <input
             type="text"
@@ -64,7 +64,8 @@ export default function LibraryPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               padding: "14px 20px",
-              width: "380px",
+              flex: 1,
+              width: "100%",
               borderRadius: "30px",
               border: "none",
               outline: "none",

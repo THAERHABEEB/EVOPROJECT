@@ -39,8 +39,8 @@ export default function SelectSpecializationPage() {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' }}>
-      <div style={{ width: 760, padding: 28, borderRadius: 12, background: 'rgba(10,10,20,0.6)', color: '#fff' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh', padding: '15px' }}>
+      <div style={{ width: '100%', maxWidth: 760, padding: 28, borderRadius: 12, background: 'rgba(10,10,20,0.6)', color: '#fff' }}>
         <h2 style={{ color: '#c19a6b' }}>Select Your Specialization</h2>
         <p>Please choose the specialization that applies to you. This will only be requested once.</p>
 
