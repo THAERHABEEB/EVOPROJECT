@@ -12,7 +12,7 @@ export default function NewsCard({ news }) {
       <div className="card">
 
         <Image
-          src={news.image}
+          src={news.img_url}
           alt={news.title}
           width={400}
           height={150}
@@ -38,7 +38,7 @@ export default function NewsCard({ news }) {
           <div className="modalContent" onClick={(e) => e.stopPropagation()}>
             <div className="modalHeader">
               <Image
-                src={news.image}
+                src={news.img_url}
                 alt={news.title}
                 width={600}
                 height={300}

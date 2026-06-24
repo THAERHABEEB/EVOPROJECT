@@ -67,7 +67,7 @@ export function NewsProvider({ children }) {
             id: item.id,
             title: item.title,
             date: new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-            image: item.img_url || '/Pics/1.jpg',
+            img_url: item.img_url || '/Pics/1.jpg',
             description: item.content || item.description || '',
             category: item.type_size === 'large' ? 'Major' : 'General',
             videoLink: "",

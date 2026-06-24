@@ -11,19 +11,8 @@ export default function LibraryPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Departments from Home page
-  const categories = [
-    "All",
-    "Data Science",
-    "Cybersecurity",
-    "Artificial Intelligence",
-    "Mechatronics",
-    "Electrical",
-    "Mechanical",
-    "Production & Industrial",
-    "Energy",
-    "Operation & Maintenance"
-  ];
+  const uniqueCategories = ["All", ...new Set(books.map(book => book.category).filter(Boolean))];
+  const categories = uniqueCategories.length > 1 ? uniqueCategories : ["All"];
 
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
