@@ -117,6 +117,28 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// GET - Activities for a specific user
+router.get('/:id/activities', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const student = await getOne('SELECT id FROM "students" WHERE user_id = $1', [userId]);
+    if (!student) return res.status(404).json({ status: 'error', error: 'Student not found' });
+    
+    const activitiesQuery = `
+      SELECT a.*, sa.registration_date
+      FROM activity a
+      JOIN student_activity sa ON a.id = sa.activity_id
+      WHERE sa.student_id = $1
+      ORDER BY a.date DESC
+    `;
+    const activities = await getAll(activitiesQuery, [student.id]);
+    res.status(200).json({ status: 'success', data: activities });
+  } catch (error) {
+    console.error('Error fetching student activities:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
 // GET - Dynamic Academic Performance Statistics
 router.get('/:id/statistics', async (req, res) => {
   try {
