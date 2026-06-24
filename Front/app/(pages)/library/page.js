@@ -11,11 +11,11 @@ export default function LibraryPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const uniqueCategories = ["All", ...new Set(books.map(book => book.category).filter(Boolean))];
-  const categories = uniqueCategories.length > 1 ? uniqueCategories : ["All"];
-
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const uniqueCategories = ["All", ...new Set(books.map(book => book.category).filter(Boolean))];
+  const categories = uniqueCategories.length > 1 ? uniqueCategories : ["All"];
 
   React.useEffect(() => {
     import('@/lib/api').then(({ api }) => {
