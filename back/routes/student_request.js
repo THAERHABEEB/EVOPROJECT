@@ -24,10 +24,10 @@ router.get('/', async (req, res) => {
       if (!student) return res.status(404).json({ status: 'error', error: 'Student profile not found' });
       query += ' WHERE sr.student_id = $1 ORDER BY sr.id DESC';
       params.push(student.id);
-    } else if (user.role.toLowerCase() === 'student affair') {
+    } else if (user.role.toLowerCase() === 'student affair' || user.role.toLowerCase() === 'admin') {
       query += ' ORDER BY sr.id DESC';
     } else {
-      // Admins or others can see all, or we restrict them.
+      // Others
       query += ' ORDER BY sr.id DESC';
     }
 
@@ -68,8 +68,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const user = req.user;
-    if (user.role.toLowerCase() !== 'student affair') {
-      return res.status(403).json({ status: 'error', error: 'Only Student Affair can update status' });
+    if (user.role.toLowerCase() !== 'student affair' && user.role.toLowerCase() !== 'admin') {
+      return res.status(403).json({ status: 'error', error: 'Only Admin or Student Affair can update status' });
     }
     
     const { status } = req.body;

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
-import api from '@/app/utils/api'
+import { api } from '@/lib/api'
 
 const statusColor = {
   pending:  { bg: 'rgba(255,193,7,0.15)',  border: '#ffc107', text: '#ffc107' },
