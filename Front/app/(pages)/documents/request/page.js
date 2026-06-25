@@ -1,85 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
-
-// ── Data ─────────────────────────────────────────────────────────────────────
-const REQUEST_TYPES = {
-  enrollment: {
-    label: 'Enrollment Certificate',
-    docs: [
-      { label: 'Student National ID',             type: 'text' },
-      { label: 'Parent National ID (if required)', type: 'text' },
-      { label: 'Payment Receipt',                  type: 'text' },
-      { label: 'Student ID / Student Code',        type: 'text' },
-    ],
-  },
-  metro: {
-    label: 'Metro Subscription',
-    docs: [
-      { label: 'Student ID',                   type: 'text' },
-      { label: 'Parent ID',                    type: 'text' },
-      { label: 'Personal Photo (4×6)',          type: 'file', accept: 'image/*' },
-      { label: 'Recent Enrollment Certificate', type: 'file', accept: '.pdf,image/*' },
-      { label: 'Metro Application Form',        type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-  military: {
-    label: 'Military Status Document',
-    docs: [
-      { label: 'National ID',                   type: 'text' },
-      { label: 'Birth Certificate',              type: 'file', accept: '.pdf,image/*' },
-      { label: '3 Personal Photos',              type: 'file', accept: 'image/*' },
-      { label: 'Recent Enrollment Certificate',  type: 'file', accept: '.pdf,image/*' },
-      { label: 'Military Card (if available)',   type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-  transcript: {
-    label: 'Transcript',
-    docs: [
-      { label: 'National ID',           type: 'text' },
-      { label: 'Student Card',          type: 'text' },
-      { label: 'Payment Receipt',       type: 'text' },
-      { label: 'Official Request Form', type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-  idcard: {
-    label: 'Student ID Card',
-    docs: [
-      { label: 'Personal Photo',    type: 'file', accept: 'image/*' },
-      { label: 'National ID',       type: 'text' },
-      { label: 'Payment Receipt',   type: 'text' },
-      { label: 'Registration Form', type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-  transfer: {
-    label: 'College Transfer',
-    docs: [
-      { label: 'Enrollment Statement',  type: 'file', accept: '.pdf,image/*' },
-      { label: 'Grade Report',          type: 'file', accept: '.pdf,image/*' },
-      { label: 'National ID',           type: 'text' },
-      { label: 'Official Transfer Form',type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-  excuse: {
-    label: 'Semester Excuse',
-    docs: [
-      { label: 'Official Request',        type: 'file', accept: '.pdf,image/*' },
-      { label: 'National ID',             type: 'text' },
-      { label: 'Excuse Reason Document',  type: 'file', accept: '.pdf,image/*' },
-      { label: 'Enrollment Statement',    type: 'file', accept: '.pdf,image/*' },
-    ],
-  },
-}
-
-const INITIAL_REQUESTS = [
-  {
-    id: 1, studentName: 'Menna Elwy', studentId: '247101', type: 'enrollment',
-    comment: '', status: 'pending', pickupDate: '',
-    docValues: { 'Student National ID': '29901120100234', 'Parent National ID (if required)': '26512301234567', 'Payment Receipt': 'REC-2024-001', 'Student ID / Student Code': 'HITU-247101' },
-  },
-]
+import api from '@/app/utils/api'
 
 const statusColor = {
   pending:  { bg: 'rgba(255,193,7,0.15)',  border: '#ffc107', text: '#ffc107' },
@@ -89,31 +14,107 @@ const statusColor = {
 const statusLabel = { pending: 'Pending', approved: 'Approved ✓', rejected: 'Rejected ✗' }
 
 export default function StudentRequestPage() {
-  const [reqType, setReqType]     = useState('enrollment')
-  const [docValues, setDocValues] = useState({})
-  const [fileObjects, setFileObjects] = useState({})
-  const [comment, setComment]     = useState('')
+  const router = useRouter()
+  const [reqTypes, setReqTypes] = useState([])
+  const [reqType, setReqType] = useState('')
+  const [notes, setNotes] = useState('')
+  const [imgBase64, setImgBase64] = useState('')
+  const [imgName, setImgName] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [myRequests, setMyRequests] = useState(INITIAL_REQUESTS)
+  const [myRequests, setMyRequests] = useState([])
+  const [studentInfo, setStudentInfo] = useState({
+    name: '', code: '', year: '', specialization: ''
+  })
 
-  const currentDocs = REQUEST_TYPES[reqType]?.docs ?? []
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          router.push('/login')
+          return
+        }
 
-  const handleTypeChange = (val) => { setReqType(val); setDocValues({}); setFileObjects({}) }
-  const handleDocValue = (doc, val, file) => {
-    setDocValues(prev => ({ ...prev, [doc]: val }))
-    if (file) setFileObjects(prev => ({ ...prev, [doc]: file }))
+        // Fetch student profile
+        const studentRes = await api.students.getByUserId(userId)
+        if (studentRes.status === 'success' && studentRes.data) {
+          const data = studentRes.data
+          setStudentInfo({
+            name: data.name || '',
+            code: data.code || '',
+            year: data.year_level || '',
+            specialization: data.department || ''
+          })
+        }
+
+        // Fetch request types
+        const typesRes = await fetch('/api/request_type', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        if (typesRes.ok) {
+          const typesJson = await typesRes.json()
+          if (typesJson.data) {
+            setReqTypes(typesJson.data)
+            if (typesJson.data.length > 0) setReqType(typesJson.data[0].id)
+          }
+        }
+
+        // Fetch previous requests
+        const reqRes = await fetch('/api/student_request', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        if (reqRes.ok) {
+          const reqJson = await reqRes.json()
+          if (reqJson.data) setMyRequests(reqJson.data)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
+    }
+    fetchData()
+  }, [router])
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImgName(file.name)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImgBase64(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
-  const handleStudentSubmit = (e) => {
+  const handleStudentSubmit = async (e) => {
     e.preventDefault()
-    const newReq = {
-      id: Date.now(), studentName: 'Abdulrahman Reda', studentId: '247818',
-      type: reqType, comment, status: 'pending', pickupDate: '',
-      docValues: { ...docValues },
+    try {
+      const res = await fetch('/api/student_request', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify({ 
+          type_request_id: reqType, 
+          notes, 
+          img: imgBase64 
+        })
+      })
+      if (res.ok) {
+        const result = await res.json()
+        if (result.data) {
+          setMyRequests(prev => [result.data, ...prev])
+        }
+        setNotes('')
+        setImgBase64('')
+        setImgName('')
+        setSubmitted(true)
+        setTimeout(() => setSubmitted(false), 3500)
+      }
+    } catch (err) {
+      console.error('Error submitting request:', err)
     }
-    setMyRequests(prev => [newReq, ...prev])
-    setDocValues({}); setFileObjects({}); setComment(''); setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3500)
   }
 
   return (
@@ -123,44 +124,51 @@ export default function StudentRequestPage() {
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <GlassCard title="📋 Submit a New Document Request">
             <form onSubmit={handleStudentSubmit}>
+              
+              <div style={gridStyle}>
+                <div>
+                  <label style={labelStyle}>Student ID / Code</label>
+                  <input type="text" readOnly value={studentInfo.code} style={readOnlyStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Student Name</label>
+                  <input type="text" readOnly value={studentInfo.name} style={readOnlyStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Study Year</label>
+                  <input type="text" readOnly value={studentInfo.year} style={readOnlyStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Specialization</label>
+                  <input type="text" readOnly value={studentInfo.specialization} style={readOnlyStyle} />
+                </div>
+              </div>
+
               <label style={labelStyle}>Document Type</label>
-              <select value={reqType} onChange={e => handleTypeChange(e.target.value)} style={selectStyle}>
-                {Object.entries(REQUEST_TYPES).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
+              <select value={reqType} onChange={e => setReqType(e.target.value)} style={selectStyle} required>
+                {reqTypes.map(rt => (
+                  <option key={rt.id} value={rt.id}>{rt.title}</option>
                 ))}
               </select>
 
-              <label style={{ ...labelStyle, marginTop: 4 }}>Required Document Details</label>
-              <div style={{
-                background: 'rgba(201,134,10,0.06)', border: '1px solid rgba(201,134,10,0.25)',
-                borderRadius: 12, padding: '16px 18px', marginBottom: 18,
-                display: 'flex', flexDirection: 'column', gap: 14,
-              }}>
-                {currentDocs.map(doc => (
-                  <div key={doc.label}>
-                    {doc.type === 'file' ? (
-                      <div style={{ position: 'relative' }}>
-                        <input type="file" required accept={doc.accept || '*'} id={`file-${doc.label}`} onChange={e => {
-                          const file = e.target.files[0]
-                          handleDocValue(doc.label, file?.name || '', file)
-                        }} style={{ display: 'none' }} />
-                        <label htmlFor={`file-${doc.label}`} style={{
-                          ...selectStyle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                          color: docValues[doc.label] ? '#4caf50' : 'rgba(255, 255, 255, 0.5)', borderStyle: 'dashed',
-                        }}>
-                          <span>📁</span> <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{docValues[doc.label] || `Click to upload ${doc.label}`}</span>
-                          {docValues[doc.label] && <span style={{ color: '#4caf50', fontWeight: 700 }}>✓</span>}
-                        </label>
-                      </div>
-                    ) : (
-                      <input type="text" required placeholder={`Enter: ${doc.label}`} value={docValues[doc.label] || ''} onChange={e => handleDocValue(doc.label, e.target.value)} style={{ ...selectStyle, marginBottom: 0, direction: 'ltr' }} />
-                    )}
-                  </div>
-                ))}
+              <label style={labelStyle}>Upload Photo / Document (Optional)</label>
+              <div style={{ position: 'relative', marginBottom: 18 }}>
+                <input type="file" accept="image/*,.pdf" id="upload-img" onChange={handleFileChange} style={{ display: 'none' }} />
+                <label htmlFor="upload-img" style={uploadLabelStyle}>
+                  <span>{imgName ? `📁 ${imgName}` : 'Click to upload photo or document'}</span>
+                  {imgName && <span style={{ color: '#4caf50', fontWeight: 700 }}>✓</span>}
+                </label>
               </div>
 
-              <label style={labelStyle}>Additional Notes (optional)</label>
-              <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Any extra notes..." rows={3} style={{ ...selectStyle, resize: 'vertical' }} />
+              <label style={labelStyle}>Notes</label>
+              <textarea 
+                value={notes} 
+                onChange={e => setNotes(e.target.value)} 
+                placeholder="Any extra notes or details for the Student Affairs department..." 
+                rows={4} 
+                style={textareaStyle} 
+              />
+              
               {submitted && (
                 <div style={{ ...alertStyle, borderColor: '#4caf50', background: 'rgba(76,175,80,0.1)', marginBottom: 14 }}>
                   ✅ Your request was submitted successfully!
@@ -175,17 +183,20 @@ export default function StudentRequestPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={tableStyle}>
                   <thead>
-                    <tr>{['Document', 'Status', 'Pickup Date', 'Notes'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                    <tr>{['Document', 'Status', 'Date', 'Notes'].map(h => <th key={h} style={thStyle}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {myRequests.map(req => {
-                      const sc = statusColor[req.status]
+                      const sc = statusColor[req.status] || statusColor.pending
+                      // Try to find title if it came from JOIN, or fallback to frontend types
+                      const docTitle = req.type_title || reqTypes.find(t => t.id == req.type_request_id)?.title || 'Request'
+                      const reqDate = new Date(req.create_at).toLocaleDateString()
                       return (
                         <tr key={req.id}>
-                          <td style={tdStyle}>{REQUEST_TYPES[req.type]?.label}</td>
-                          <td style={tdStyle}><span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 13, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}>{statusLabel[req.status]}</span></td>
-                          <td style={{ ...tdStyle, color: req.pickupDate ? '#4caf50' : '#888' }}>{req.pickupDate || '—'}</td>
-                          <td style={{ ...tdStyle, color: '#aaa', fontSize: 13 }}>{req.comment || '—'}</td>
+                          <td style={tdStyle}>{docTitle}</td>
+                          <td style={tdStyle}><span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 13, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}>{statusLabel[req.status] || req.status}</span></td>
+                          <td style={{ ...tdStyle, color: '#aaa' }}>{reqDate}</td>
+                          <td style={{ ...tdStyle, color: '#aaa', fontSize: 13 }}>{req.notes || '—'}</td>
                         </tr>
                       )
                     })}
@@ -197,27 +208,71 @@ export default function StudentRequestPage() {
         </div>
       </div>
       <CircularMenu />
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
-        textarea::placeholder, input::placeholder { color: rgba(255, 255, 255, 0.4); }
-      `}</style>
     </>
   )
 }
 
-function GlassCard({ title, children, style = {} }) {
-  return (
-    <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 18, padding: '28px 26px', ...style }}>
-      {title && <h2 style={{ color: '#c9860a', fontSize: 20, marginBottom: 22, fontWeight: 700 }}>{title}</h2>}
-      {children}
-    </div>
-  )
+// ── Reusable Styles ──────────────────────────────────────────────────────────
+const GlassCard = ({ title, children, style }) => (
+  <div style={{ background: 'rgba(20,20,20,0.6)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: 28, ...style }}>
+    <h3 style={{ margin: '0 0 24px', fontSize: 22, color: '#fff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>{title}</h3>
+    {children}
+  </div>
+)
+
+const gridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+  gap: '16px',
+  marginBottom: '20px'
 }
 
-const labelStyle   = { display: 'block', color: '#c9a96e', fontSize: 14, fontWeight: 600, marginBottom: 8 }
-const selectStyle  = { width: '100%', padding: '11px 14px', borderRadius: 10, border: '1px solid rgba(201,134,10,0.35)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 14, marginBottom: 16, outline: 'none' }
-const btnGoldStyle = { padding: '11px 28px', borderRadius: 50, border: 'none', background: 'linear-gradient(135deg,#c9860a,#e6a820)', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', transition: 'opacity 0.2s', width: '100%' }
-const alertStyle   = { padding: '12px 16px', borderRadius: 10, borderLeft: '4px solid', fontSize: 14, color: '#eee', marginBottom: 0 }
-const tableStyle   = { width: '100%', borderCollapse: 'collapse', fontSize: 14 }
-const thStyle      = { padding: '10px 14px', background: 'rgba(201,134,10,0.12)', color: '#c9860a', fontWeight: 700, textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.08)' }
-const tdStyle      = { padding: '11px 14px', color: '#ddd', borderBottom: '1px solid rgba(255,255,255,0.05)', verticalAlign: 'middle' }
+const readOnlyStyle = {
+  width: '100%', padding: '12px 16px', borderRadius: 12,
+  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+  color: '#888', fontSize: 15, outline: 'none'
+}
+
+const labelStyle = { display: 'block', marginBottom: 8, fontSize: 14, color: '#bbb', fontWeight: 500 }
+
+const selectStyle = {
+  width: '100%', padding: '14px 16px', borderRadius: 12,
+  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+  color: '#fff', fontSize: 15, outline: 'none', marginBottom: 18,
+  transition: 'border-color 0.2s'
+}
+
+const textareaStyle = {
+  ...selectStyle,
+  resize: 'vertical',
+  fontFamily: 'inherit',
+  minHeight: '100px',
+  lineHeight: '1.5'
+}
+
+const uploadLabelStyle = {
+  ...selectStyle, 
+  marginBottom: 0, 
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'space-between',
+  cursor: 'pointer',
+  color: '#bbb', 
+  borderStyle: 'dashed',
+  borderWidth: '2px',
+  borderColor: 'rgba(201,134,10,0.4)',
+  background: 'rgba(201,134,10,0.05)'
+}
+
+const btnGoldStyle = {
+  width: '100%', padding: '14px',
+  background: 'linear-gradient(135deg, #c9860a, #e6a820)',
+  color: '#000', fontSize: 16, fontWeight: 700, borderRadius: 12,
+  border: 'none', cursor: 'pointer', transition: 'transform 0.2s, boxShadow 0.2s',
+  boxShadow: '0 4px 15px rgba(201,134,10,0.3)',
+}
+
+const alertStyle = { padding: '12px 16px', borderRadius: 12, border: '1px solid', fontSize: 15 }
+const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: 600 }
+const thStyle = { textAlign: 'left', padding: '12px 16px', color: '#888', fontWeight: 500, fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.05)' }
+const tdStyle = { padding: '16px', color: '#fff', fontSize: 15, borderBottom: '1px solid rgba(255,255,255,0.03)' }

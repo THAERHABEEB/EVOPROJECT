@@ -1,19 +1,12 @@
+require('dotenv').config();
 const { getAll } = require('./config/db.js');
 
-async function checkGrades() {
-  try {
-    const grades = await getAll('SELECT * FROM "grade" LIMIT 5');
-    console.log('Sample Grades:', JSON.stringify(grades, null, 2));
-    
-    const uploadGrades = await getAll('SELECT * FROM "upload_grades" LIMIT 5');
-    console.log('Sample Upload Grades:', JSON.stringify(uploadGrades, null, 2));
-
-    const semesters = await getAll('SELECT * FROM "semesters" LIMIT 5');
-    console.log('Sample Semesters:', JSON.stringify(semesters, null, 2));
-
-  } catch (err) {
-    console.error(err);
-  }
+async function check() {
+  const students = await getAll('SELECT * FROM students WHERE code = \'002A7660\'');
+  console.log('Student:', students);
+  const records = await getAll('SELECT * FROM attendance ORDER BY id DESC LIMIT 5');
+  console.log('Recent Attendance:', records);
+  process.exit(0);
 }
 
-checkGrades();
+check().catch(console.error);

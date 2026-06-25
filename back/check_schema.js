@@ -1,18 +1,16 @@
-const { runQuery } = require('./config/db.js');
+require('dotenv').config();
+const { getAll } = require('./config/db.js');
 
-async function run() {
-  try {
-    const tables = ['students', 'grade', 'enrollments', 'course'];
-    for (const table of tables) {
-      const res = await runQuery(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1`, [table]);
-      console.log(`--- ${table} ---`);
-      console.log(res.rows.map(r => `${r.column_name} (${r.data_type})`).join(', '));
-    }
-    process.exit(0);
-  } catch(err) {
-    console.error('Error:', err);
-    process.exit(1);
-  }
+async function check() {
+  const res = await getAll(`
+    SELECT column_name, data_type 
+    FROM information_schema.columns 
+    WHERE table_name = 'student_request'
+  `);
+  console.log('student_request schema:', res);
+  
+  const roles = await getAll('SELECT DISTINCT role FROM "USER"');
+  console.log('Roles:', roles);
+  process.exit(0);
 }
-
-run();
+check().catch(console.error);

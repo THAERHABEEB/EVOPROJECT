@@ -22,8 +22,10 @@
 const char* ssid     = "PABLO";        // <- your WiFi name
 const char* password = "51151155";    // <- your WiFi password
 
-// BACKEND API URL (Railway)
+// BACKEND API URL (Replace with your Railway URL or Local IP)
 const char* API_URL  = "https://evo-backend-production-553a.up.railway.app/api/attendance/rfid"; 
+// Example: "https://evo-backend-production.up.railway.app/api/attendance/rfid"
+// Or Local: "http://192.168.1.15:10000/api/attendance/rfid"
 
 // ====================== Pin Definitions ======================
 #define BUZZER_PIN  13

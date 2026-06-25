@@ -4,8 +4,11 @@ const { getOne, getAll, runQuery } = require('../config/db.js');
 const authenticateToken = require('../middleware/auth.js');
 
 // ESP32 RFID Endpoint (No Auth so hardware can post easily)
+const fs = require('fs');
+const path = require('path');
 router.post('/rfid', async (req, res) => {
   try {
+    fs.appendFileSync(path.join(__dirname, '../../rfid_log.txt'), JSON.stringify(req.body) + '\n');
     const { uid, type } = req.body;
     if (!uid) return res.status(400).json({ status: 'error', error: 'Missing uid' });
 
