@@ -9,15 +9,7 @@ import '@/styles/bootstrap.min.css'
 
 export const metadata = {
   title: 'EVO PROJECT (Smart Campus System)',
-  description: 'The EVO Project (Smart Campus System) is an
-integrated digital platform designed to modernize
-university operations by merging academic, administrative, and security services into a single, centralized hub. Developed as a Bachelor of Science
-graduation project in Data Science at Helwan
-International Technological University (HITU), the
-system streamlines campus life through automated
-ID-card attendance tracking, interactive Blender- modeled 3D indoor navigation, secure internal
-communication networks, and role-based
-administrative dashboards. Built using a robust full- stack architecture of React.js, Node.js, Express.js, and MySQL .',
+  description: 'The EVO Project (Smart Campus System) is an integrated digital platform designed to modernize university operations by merging academic, administrative, and security services into a single, centralized hub. Developed as a Bachelor of Science graduation project in Data Science at Helwan International Technological University (HITU)',
 }
 
 export const viewport = {
