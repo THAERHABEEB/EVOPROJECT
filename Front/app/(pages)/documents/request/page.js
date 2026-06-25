@@ -129,19 +129,19 @@ export default function StudentRequestPage() {
               <div style={gridStyle}>
                 <div>
                   <label style={labelStyle}>Student ID</label>
-                  <input type="text" readOnly value={studentInfo.studentId || studentInfo.code} style={readOnlyStyle} />
+                  <input type="text" readOnly value={studentInfo.studentId || studentInfo.code ? `🔒 ${studentInfo.studentId || studentInfo.code}` : ''} style={readOnlyStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Student Name</label>
-                  <input type="text" readOnly value={studentInfo.name} style={readOnlyStyle} />
+                  <input type="text" readOnly value={studentInfo.name ? `🔒 ${studentInfo.name}` : ''} style={readOnlyStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Study Year</label>
-                  <input type="text" readOnly value={studentInfo.year} style={readOnlyStyle} />
+                  <input type="text" readOnly value={studentInfo.year ? `🔒 ${studentInfo.year}` : ''} style={readOnlyStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Specialization</label>
-                  <input type="text" readOnly value={studentInfo.specialization} style={readOnlyStyle} />
+                  <input type="text" readOnly value={studentInfo.specialization ? `🔒 ${studentInfo.specialization}` : ''} style={readOnlyStyle} />
                 </div>
               </div>
 
@@ -230,8 +230,9 @@ const gridStyle = {
 
 const readOnlyStyle = {
   width: '100%', padding: '12px 16px', borderRadius: 12,
-  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-  color: '#888', fontSize: 15, outline: 'none'
+  background: 'rgba(76, 175, 80, 0.05)', border: '1px solid rgba(76, 175, 80, 0.2)',
+  color: '#4caf50', fontSize: 15, outline: 'none', fontWeight: 600,
+  cursor: 'not-allowed'
 }
 
 const labelStyle = { display: 'block', marginBottom: 8, fontSize: 14, color: '#bbb', fontWeight: 500 }
