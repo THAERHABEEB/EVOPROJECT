@@ -4,7 +4,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
-const test = require('./config/test_db')
+const test = require('./config/test_db');
+const attendanceRoutes = require('./routes/attendance');
+const studentRequestRoutes = require('./routes/student_request');
+const requestTypeRoutes = require('./routes/request_type');
 
 
 // Initialize Express app

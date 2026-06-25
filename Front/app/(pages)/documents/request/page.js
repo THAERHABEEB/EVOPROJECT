@@ -43,7 +43,8 @@ export default function StudentRequestPage() {
             name: data.name || '',
             code: data.code || '',
             year: data.year_level || '',
-            specialization: data.department || ''
+            specialization: data.department || '',
+            studentId: data.user_id || data.id || ''
           })
         }
 
@@ -127,8 +128,8 @@ export default function StudentRequestPage() {
               
               <div style={gridStyle}>
                 <div>
-                  <label style={labelStyle}>Student ID / Code</label>
-                  <input type="text" readOnly value={studentInfo.code} style={readOnlyStyle} />
+                  <label style={labelStyle}>Student ID</label>
+                  <input type="text" readOnly value={studentInfo.studentId || studentInfo.code} style={readOnlyStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Student Name</label>

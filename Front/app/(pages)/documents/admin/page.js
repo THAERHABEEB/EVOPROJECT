@@ -94,7 +94,7 @@ export default function AdminRequestPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                           <div>
                             <div style={{ fontWeight: 600, color: '#fff', fontSize: 16 }}>{req.student_name || `Student #${req.student_id}`}</div>
-                            <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>{req.student_code} • {req.type_title}</div>
+                            <div style={{ color: '#aaa', fontSize: 13, marginTop: 4 }}>{req.student_id || req.student_code} • {req.type_title}</div>
                           </div>
                           <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}>{statusLabel[req.status] || req.status}</span>
                         </div>
@@ -117,8 +117,8 @@ export default function AdminRequestPage() {
                     <div style={detailValueStyle}>{selectedReq.student_name || 'N/A'}</div>
                   </div>
                   <div style={{ marginBottom: 20 }}>
-                    <div style={detailLabelStyle}>Student ID / Code</div>
-                    <div style={detailValueStyle}>{selectedReq.student_code || 'N/A'}</div>
+                    <div style={detailLabelStyle}>Student ID</div>
+                    <div style={detailValueStyle}>{selectedReq.student_id || selectedReq.student_code || 'N/A'}</div>
                   </div>
                   <div style={{ marginBottom: 20 }}>
                     <div style={detailLabelStyle}>Specialization</div>
