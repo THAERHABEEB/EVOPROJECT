@@ -49,24 +49,24 @@ export default function StudentRequestPage() {
         }
 
         // Fetch request types
-        const typesRes = await fetch('/api/request_type', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
-        if (typesRes.ok) {
-          const typesJson = await typesRes.json()
-          if (typesJson.data) {
-            setReqTypes(typesJson.data)
-            if (typesJson.data.length > 0) setReqType(typesJson.data[0].id)
+        try {
+          const typesRes = await api.requestTypes.getAll()
+          if (typesRes.status === 'success' && typesRes.data) {
+            setReqTypes(typesRes.data)
+            if (typesRes.data.length > 0) setReqType(typesRes.data[0].id)
           }
+        } catch (err) {
+          console.error('Error fetching request types:', err)
         }
 
         // Fetch previous requests
-        const reqRes = await fetch('/api/student_request', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
-        if (reqRes.ok) {
-          const reqJson = await reqRes.json()
-          if (reqJson.data) setMyRequests(reqJson.data)
+        try {
+          const reqRes = await api.studentRequests.getAll()
+          if (reqRes.status === 'success' && reqRes.data) {
+            setMyRequests(reqRes.data)
+          }
+        } catch (err) {
+          console.error('Error fetching student requests:', err)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -90,23 +90,13 @@ export default function StudentRequestPage() {
   const handleStudentSubmit = async (e) => {
     e.preventDefault()
     try {
-      const res = await fetch('/api/student_request', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
-        },
-        body: JSON.stringify({ 
-          type_request_id: reqType, 
-          notes, 
-          img: imgBase64 
-        })
+      const res = await api.studentRequests.create({
+        type_request_id: reqType, 
+        notes, 
+        img: imgBase64
       })
-      if (res.ok) {
-        const result = await res.json()
-        if (result.data) {
-          setMyRequests(prev => [result.data, ...prev])
-        }
+      if (res.status === 'success' && res.data) {
+        setMyRequests(prev => [res.data, ...prev])
         setNotes('')
         setImgBase64('')
         setImgName('')
@@ -148,7 +138,7 @@ export default function StudentRequestPage() {
               <label style={labelStyle}>Document Type</label>
               <select value={reqType} onChange={e => setReqType(e.target.value)} style={selectStyle} required>
                 {reqTypes.map(rt => (
-                  <option key={rt.id} value={rt.id}>{rt.title}</option>
+                  <option key={rt.id} value={rt.id} style={{ color: '#000' }}>{rt.title}</option>
                 ))}
               </select>
 
