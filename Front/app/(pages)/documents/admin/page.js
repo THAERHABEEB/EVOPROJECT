@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
+import { api } from '@/lib/api'
 
 const statusColor = {
   pending:  { bg: 'rgba(255,193,7,0.15)',  border: '#ffc107', text: '#ffc107' },
@@ -21,15 +22,12 @@ export default function AdminRequestPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/student_request', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.data) setAllRequests(data.data)
+        const res = await api.studentRequests.getAll()
+        if (res.status === 'success' && res.data) {
+          setAllRequests(res.data)
         }
       } catch (err) {
-        console.error('Error fetching requests:', err)
+        console.error(err)
       } finally {
         setLoading(false)
       }
@@ -37,19 +35,12 @@ export default function AdminRequestPage() {
     fetchData()
   }, [])
 
-  const updateStatus = async (id, newStatus) => {
+  const updateStatus = async (id, status) => {
     try {
-      const res = await fetch(`/api/student_request/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      })
-      if (res.ok) {
-        setAllRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r))
-        if (selectedReq?.id === id) setSelectedReq(prev => ({ ...prev, status: newStatus }))
+      const res = await api.studentRequests.update(id, { status })
+      if (res.status === 'success') {
+        setAllRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+        if (selectedReq?.id === id) setSelectedReq(prev => ({ ...prev, status }))
       }
     } catch (err) {
       console.error('Error updating status:', err)

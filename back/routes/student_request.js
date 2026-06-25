@@ -74,8 +74,8 @@ router.put('/:id', async (req, res) => {
     
     const { status } = req.body;
     const result = await runQuery(
-      'UPDATE student_request SET status = $1, viewed_by = $2 WHERE id = $3 RETURNING *',
-      [status, user.id, req.params.id]
+      'UPDATE student_request SET status = $1 WHERE id = $2 RETURNING *',
+      [status, req.params.id]
     );
     
     if (result.rowCount === 0) return res.status(404).json({ status: 'error', error: 'Record not found' });
