@@ -29,6 +29,7 @@ export default function StudentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   const fetchStudentInfo = async () => {
     try {
@@ -68,26 +69,23 @@ export default function StudentPage() {
   }
 
   useEffect(() => {
-    fetchStudentInfo()
     setIsClient(true)
-  }, [])
+    const handleResize = () => setIsDesktop(window.innerWidth > 992)
+    handleResize()
+    window.addEventListener('resize', handleResize)
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
-      if (window.innerWidth >= 768) {
-        setSidebarOpen(true)
-      } else {
-        setSidebarOpen(false)
-      }
+    if (!localStorage.getItem('studentInstructionsViewed')) {
+      setShowInstructions(true)
     }
 
-    // Set initial state on mount
-    handleResize()
-
-    window.addEventListener('resize', handleResize)
+    fetchStudentInfo()
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  const closeInstructions = () => {
+    localStorage.setItem('studentInstructionsViewed', 'true')
+    setShowInstructions(false)
+  }
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -134,6 +132,42 @@ export default function StudentPage() {
 
   return (
     <>
+      {showInstructions && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(8px)', animation: 'fadeIn 0.5s ease'
+        }}>
+          <div style={{
+            background: '#1a1a2e', padding: '40px 30px', borderRadius: '15px',
+            border: '1px solid rgba(255,255,255,0.1)', maxWidth: '500px', width: '90%',
+            color: '#fff', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', textAlign: 'center',
+            position: 'relative'
+          }}>
+            <h2 style={{ marginBottom: '15px', color: '#4facfe', fontSize: '24px' }}>Welcome to Student Portal</h2>
+            <p style={{ lineHeight: '1.6', marginBottom: '25px', color: '#ccc' }}>Quick guide to get you started:</p>
+            <ul style={{ lineHeight: '2.0', marginBottom: '30px', textAlign: 'left', paddingLeft: '20px', color: '#e0e0e0', fontSize: '15px' }}>
+              <li><strong>Profile:</strong> View and update your personal information.</li>
+              <li><strong>Grades & Lectures:</strong> Access your academic progress and course materials.</li>
+              <li><strong>Document Requests:</strong> Request official documents directly from Student Affairs.</li>
+              <li><strong>Payments & Roadmap:</strong> Check your financial status and academic path.</li>
+            </ul>
+            <button 
+              onClick={closeInstructions}
+              style={{
+                width: '100%', padding: '14px', background: 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)',
+                border: 'none', borderRadius: '8px', color: '#fff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              Got it, let's go!
+            </button>
+          </div>
+        </div>
+      )}
       <Header
         onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={true}

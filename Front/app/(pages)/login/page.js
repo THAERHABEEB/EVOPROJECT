@@ -290,12 +290,9 @@ export default function LoginPage() {
             }}
           >
             <h1>Welcome to HITU</h1>
-            <p style={{ lineHeight: '1.8', fontSize: '15px', textAlign: 'left', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '12px' }}>
-              <strong>📋 Instructions to use this web:</strong><br />
-              1. Enter your University ID and Password.<br />
-              2. Click Login to access your personalized portal.<br />
-              3. Navigate your dashboard to check grades, request documents, and view lectures.<br />
-              <em>Note: Ensure your credentials are kept secure.</em>
+            <p>
+              Your gateway to innovation, learning, and academic excellence. Please log in to
+              continue
             </p>
             <button onClick={() => window.location.href = '/'} className="learn-btn">
               Learn More
