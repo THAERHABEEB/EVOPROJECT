@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 
 export default function LoginPage() {
@@ -9,6 +9,21 @@ export default function LoginPage() {
     password: '',
   })
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    // Play welcome voice if not played yet in this session
+    const voicePlayed = sessionStorage.getItem('loginVoicePlayed');
+    if (!voicePlayed && 'speechSynthesis' in window) {
+      // Slight delay to allow interaction or page load
+      const timer = setTimeout(() => {
+        const msg = new SpeechSynthesisUtterance("Welcome to our Channel. Please enter ID AND password.");
+        msg.rate = 0.9;
+        window.speechSynthesis.speak(msg);
+        sessionStorage.setItem('loginVoicePlayed', 'true');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -275,9 +290,12 @@ export default function LoginPage() {
             }}
           >
             <h1>Welcome to HITU</h1>
-            <p>
-              Your gateway to innovation, learning, and academic excellence. Please log in to
-              continue
+            <p style={{ lineHeight: '1.8', fontSize: '15px', textAlign: 'left', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '12px' }}>
+              <strong>📋 Instructions to use this web:</strong><br />
+              1. Enter your University ID and Password.<br />
+              2. Click Login to access your personalized portal.<br />
+              3. Navigate your dashboard to check grades, request documents, and view lectures.<br />
+              <em>Note: Ensure your credentials are kept secure.</em>
             </p>
             <button onClick={() => window.location.href = '/'} className="learn-btn">
               Learn More
