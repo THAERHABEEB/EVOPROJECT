@@ -146,24 +146,27 @@ export default function StudentPage() {
             position: 'relative'
           }}>
             <h2 style={{ marginBottom: '15px', color: '#4facfe', fontSize: '24px' }}>Welcome to Student Portal</h2>
-            <p style={{ lineHeight: '1.6', marginBottom: '25px', color: '#ccc' }}>Quick guide to get you started:</p>
-            <ul style={{ lineHeight: '2.0', marginBottom: '30px', textAlign: 'left', paddingLeft: '20px', color: '#e0e0e0', fontSize: '15px' }}>
-              <li><strong>Profile:</strong> View and update your personal information.</li>
-              <li><strong>Grades & Lectures:</strong> Access your academic progress and course materials.</li>
-              <li><strong>Document Requests:</strong> Request official documents directly from Student Affairs.</li>
-              <li><strong>Payments & Roadmap:</strong> Check your financial status and academic path.</li>
+            <p style={{ lineHeight: '1.6', marginBottom: '25px', color: '#ccc' }}>Here is a quick overview of your navigation bar:</p>
+            <ul style={{ listStyleType: 'none', lineHeight: '2.0', marginBottom: '30px', textAlign: 'left', paddingLeft: '10px', color: '#e0e0e0', fontSize: '16px' }}>
+              <li>➔ <strong>Grades:</strong> Track your academic performance.</li>
+              <li>➔ <strong>Lectures:</strong> Access your course materials and videos.</li>
+              <li>➔ <strong>Activities:</strong> Participate in student events and tasks.</li>
+              <li>➔ <strong>Statistics:</strong> View detailed charts of your progress.</li>
+              <li>➔ <strong>Assignments:</strong> Submit and manage your coursework.</li>
+              <li>➔ <strong>Roadmap:</strong> Follow your academic timeline.</li>
+              <li>➔ <strong>Payments:</strong> Manage your tuition and fees.</li>
             </ul>
             <button 
               onClick={closeInstructions}
               style={{
-                width: '100%', padding: '14px', background: 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)',
-                border: 'none', borderRadius: '8px', color: '#fff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
-                transition: 'transform 0.2s ease'
+                width: '100%', padding: '14px', background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
+                transition: 'all 0.3s ease'
               }}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(0)' }}
             >
-              Got it, let's go!
+              Skip Tutorial
             </button>
           </div>
         </div>
