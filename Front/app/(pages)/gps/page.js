@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
+import { api } from '@/lib/api'
 
 // ── Campus Data ────────────────────────────────────────────────────────────────
 const BUILDINGS = [
@@ -81,15 +82,51 @@ const TYPE_ICONS = {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function GPSPage() {
+  const [buildings, setBuildings] = useState(BUILDINGS)
   const [selectedBuilding, setSelectedBuilding] = useState(null)
   const [selectedRoom, setSelectedRoom]         = useState(null)
   const [searchQuery, setSearchQuery]           = useState('')
   const [sidebarTab, setSidebarTab]             = useState('buildings') // 'buildings' | 'search'
 
+  useEffect(() => {
+    async function loadBuildings() {
+      try {
+        const res = await api.buildings.getAll()
+        if (res.status === 'success' && res.data) {
+          const grouped = res.data.reduce((acc, curr) => {
+            const loc = curr.building_loc
+            if (!acc[loc]) {
+              const colorMap = { 'A': '#c9860a', 'C': '#4fc3f7', 'D': '#81c784', 'F': '#ce93d8', 'G': '#ff8a65' }
+              acc[loc] = {
+                id: loc,
+                name: `Building ${loc}`,
+                color: colorMap[loc] || '#aaa',
+                rooms: []
+              }
+            }
+            acc[loc].rooms.push({
+              id: curr.room_num,
+              label: `${curr.room_num} - ${curr.room_name || 'Room'}`,
+              type: curr.room_name?.toLowerCase().includes('lab') ? 'lab' 
+                    : (curr.room_name?.toLowerCase().includes('office') || curr.room_name?.includes('مكتب')) ? 'office' 
+                    : (curr.room_name?.includes('مدرج') || curr.room_name?.toLowerCase().includes('hall')) ? 'lecture'
+                    : 'class'
+            })
+            return acc
+          }, {})
+          setBuildings(Object.values(grouped).sort((a,b) => a.id.localeCompare(b.id)))
+        }
+      } catch (error) {
+        console.error('Error loading buildings:', error)
+      }
+    }
+    loadBuildings()
+  }, [])
+
   // Flatten all rooms for search
   const allRooms = useMemo(() =>
-    BUILDINGS.flatMap(b => b.rooms.map(r => ({ ...r, buildingId: b.id, buildingName: b.name, buildingColor: b.color }))),
-    []
+    buildings.flatMap(b => b.rooms.map(r => ({ ...r, buildingId: b.id, buildingName: b.name, buildingColor: b.color }))),
+    [buildings]
   )
 
   const searchResults = useMemo(() => {
@@ -103,7 +140,7 @@ export default function GPSPage() {
     )
   }, [searchQuery, allRooms])
 
-  const currentBuilding = BUILDINGS.find(b => b.id === selectedBuilding)
+  const currentBuilding = buildings.find(b => b.id === selectedBuilding)
   const activeColor = currentBuilding?.color || '#c9860a'
 
   const handleRoomSelect = (room) => {
@@ -197,8 +234,8 @@ export default function GPSPage() {
 
             {/* ── Buildings Tab ── */}
             {sidebarTab === 'buildings' && (
-              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 0' }}>
-                {BUILDINGS.map(building => (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {buildings.map(building => (
                   <div key={building.id}>
                     {/* Building Header */}
                     <button
