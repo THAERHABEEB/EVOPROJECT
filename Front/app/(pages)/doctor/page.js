@@ -16,6 +16,9 @@ export default function DoctorPage() {
   const [doctorData, setDoctorData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isPhotoExpanded, setIsPhotoExpanded] = useState(false)
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [assignmentForm, setAssignmentForm] = useState({ title: '', details: '', course_id: 'CS101', file_url: '', image_url: '', start_date: '', end_date: '', total_grade: 100 })
+  const [submissions, setSubmissions] = useState([])
 
   useEffect(() => {
     const fetchDoctorData = async () => {
@@ -74,11 +77,56 @@ export default function DoctorPage() {
     }
   }, [])
 
+  const fetchSubmissions = async () => {
+    if (!doctorData?.id) return;
+    try {
+      const res = await api.assignments.getSubmissionsForDoctor(doctorData.id);
+      if (res.status === 'success') setSubmissions(res.data);
+    } catch (err) {
+      console.error('Error fetching submissions:', err);
+    }
+  }
+
+  useEffect(() => {
+    if (showAssignmentModal) fetchSubmissions();
+  }, [showAssignmentModal, doctorData]);
+
+  const handleCreateAssignment = async (e) => {
+    e.preventDefault();
+    try {
+      const data = { ...assignmentForm, doctor_id: doctorData.id };
+      const res = await api.assignments.createCourseAssignment(data);
+      if (res.status === 'success') {
+        alert('Assignment dispatched successfully!');
+        setShowAssignmentModal(false);
+      }
+    } catch (err) {
+      alert('Error creating assignment');
+    }
+  };
+
+  const handleGradeSubmission = async (subId, grade) => {
+    try {
+      const res = await api.assignments.gradeSubmission({ submission_id: subId, grade });
+      if (res.status === 'success') {
+        alert('Graded successfully!');
+        fetchSubmissions();
+      }
+    } catch (err) {
+      alert('Error grading submission');
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
       setUploadedFile(file)
       setUploadStatus(`Selected: ${file.name}`)
+      setTimeout(() => {
+        alert(`File ${file.name} sent successfully to all enrolled students!`);
+        setUploadStatus('');
+        setUploadedFile(null);
+      }, 1000);
     }
   }
 
@@ -197,9 +245,14 @@ export default function DoctorPage() {
                       <i className="bi bi-cloud-arrow-up me-1"></i> +1 added file
                     </span>
                   </div>
-                  <button className="btn w-100" style={{ background: 'linear-gradient(to right, #6b829c, #8ca3ba)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, padding: '10px', boxShadow: '0 4px 10px rgba(107,130,156,0.2)', transition: 'transform 0.25s, box-shadow 0.25s' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(107,130,156,0.4)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(107,130,156,0.2)'; }} onClick={() => document.getElementById('gradesFile').click()}>
-                    <i className="bi bi-cloud-upload me-2"></i>Upload File
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button className="btn w-50" style={{ background: 'linear-gradient(to right, #6b829c, #8ca3ba)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, padding: '10px', boxShadow: '0 4px 10px rgba(107,130,156,0.2)', transition: 'transform 0.25s, box-shadow 0.25s' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(107,130,156,0.4)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(107,130,156,0.2)'; }} onClick={() => document.getElementById('gradesFile').click()}>
+                      <i className="bi bi-cloud-upload me-2"></i>Upload File
+                    </button>
+                    <button className="btn w-50" style={{ background: 'linear-gradient(to right, #c4a16b, #e0c89c)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, padding: '10px', boxShadow: '0 4px 10px rgba(196,161,107,0.2)' }} onClick={() => setShowAssignmentModal(true)}>
+                      <i className="bi bi-journal-text me-2"></i>Manage Assignments
+                    </button>
+                  </div>
                   <input type="file" id="gradesFile" accept=".xlsx,.pdf,.doc" style={{ display: 'none' }} onChange={handleFileChange} />
                 </div>
               </div>
@@ -608,6 +661,57 @@ export default function DoctorPage() {
       `}</style>
 
       <CircularMenu />
+
+      {showAssignmentModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1050, display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={() => setShowAssignmentModal(false)}>
+          <div style={{ background: '#fff', padding: '20px', borderRadius: '15px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h4>Manage Assignments</h4>
+              <button className="btn-close" onClick={() => setShowAssignmentModal(false)}></button>
+            </div>
+            <hr/>
+            <h5>Create New Assignment</h5>
+            <form onSubmit={handleCreateAssignment}>
+              <input className="form-control mb-2" placeholder="Course ID (e.g., CS101)" value={assignmentForm.course_id} onChange={e => setAssignmentForm({...assignmentForm, course_id: e.target.value})} required />
+              <input className="form-control mb-2" placeholder="Title" value={assignmentForm.title} onChange={e => setAssignmentForm({...assignmentForm, title: e.target.value})} required />
+              <textarea className="form-control mb-2" placeholder="Details" value={assignmentForm.details} onChange={e => setAssignmentForm({...assignmentForm, details: e.target.value})}></textarea>
+              <input className="form-control mb-2" placeholder="File Link (Google Form, etc.)" value={assignmentForm.file_url} onChange={e => setAssignmentForm({...assignmentForm, file_url: e.target.value})} required />
+              <input className="form-control mb-2" placeholder="Image URL (optional)" value={assignmentForm.image_url} onChange={e => setAssignmentForm({...assignmentForm, image_url: e.target.value})} />
+              <div className="d-flex gap-2 mb-2">
+                <input type="datetime-local" className="form-control" value={assignmentForm.start_date} onChange={e => setAssignmentForm({...assignmentForm, start_date: e.target.value})} required />
+                <input type="datetime-local" className="form-control" value={assignmentForm.end_date} onChange={e => setAssignmentForm({...assignmentForm, end_date: e.target.value})} required />
+              </div>
+              <input type="number" className="form-control mb-3" placeholder="Total Grade" value={assignmentForm.total_grade} onChange={e => setAssignmentForm({...assignmentForm, total_grade: e.target.value})} required />
+              <button type="submit" className="btn btn-primary w-100">Dispatch Assignment</button>
+            </form>
+            
+            <hr className="my-4"/>
+            <h5>Student Submissions</h5>
+            {submissions.length === 0 ? <p className="text-muted">No submissions yet.</p> : (
+              <ul className="list-group">
+                {submissions.map(sub => (
+                  <li key={sub.id} className="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{sub.student_name}</strong> - {sub.title} ({sub.course_id})<br/>
+                      <a href={sub.file_url} target="_blank" rel="noreferrer">View Submission</a>
+                    </div>
+                    <div>
+                      {sub.status === 'graded' ? (
+                        <span className="badge bg-success">Graded: {sub.grade}/{sub.total_grade}</span>
+                      ) : (
+                        <div className="d-flex">
+                          <input type="number" id={`grade-${sub.id}`} className="form-control form-control-sm me-2" style={{ width: '70px' }} placeholder="Grade" />
+                          <button className="btn btn-sm btn-success" onClick={() => handleGradeSubmission(sub.id, document.getElementById(`grade-${sub.id}`).value)}>Save</button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -83,6 +83,11 @@ export const api = {
   assignments: {
     ...createResource('assignment'),
     getByStudentId: (studentId) => request(`/assignment/student/${studentId}`),
+    createCourseAssignment: (data) => request(`/assignment/course`, { method: 'POST', body: data }),
+    getCourseAssignmentsForStudent: (studentId) => request(`/assignment/course/student/${studentId}`),
+    submit: (data) => request(`/assignment/submit`, { method: 'POST', body: data }),
+    getSubmissionsForDoctor: (doctorId) => request(`/assignment/doctor/${doctorId}/submissions`),
+    gradeSubmission: (data) => request(`/assignment/grade`, { method: 'POST', body: data }),
   },
   attendance: createResource('attendance'),
   buildings: createResource('building'),
