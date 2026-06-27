@@ -80,7 +80,10 @@ export const api = {
   // Standard resources
   users: createResource('USER'),
   admin: createResource('admin'),
-  assignments: createResource('assignment'),
+  assignments: {
+    ...createResource('assignment'),
+    getByStudentId: (studentId) => request(`/assignment/student/${studentId}`),
+  },
   attendance: createResource('attendance'),
   buildings: createResource('building'),
   control: createResource('control'),
@@ -100,7 +103,10 @@ export const api = {
     ...createResource('grade'),
     getByStudentId: (studentId) => request(`/grade/student/${studentId}`),
   },
-  lectures: createResource('lecture'),
+  lectures: {
+    ...createResource('lecture'),
+    getByStudentId: (studentId) => request(`/lecture/student/${studentId}`),
+  },
   lectureMaterials: createResource('lecture_materials'),
   library: createResource('library'),
   live: createResource('live'),

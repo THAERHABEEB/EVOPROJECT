@@ -31,6 +31,17 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET assignments by student ID
+router.get('/student/:studentId', async (req, res) => {
+  try {
+    const data = await getAll('SELECT * FROM "assignment" WHERE student_id = $1', [req.params.studentId]);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching data from assignment for student:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
 // POST - Create a new record (Simplified boilerplate, replace columns as needed)
 router.post('/', async (req, res) => {
   try {

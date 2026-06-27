@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LiveDotIcon } from '@/app/components/Icons'
+import { api } from '@/lib/api'
 
 /* ─── shared dropdown style ─────────────────────────────────────────────── */
 const selectStyle = {
@@ -67,30 +68,46 @@ const VideoThumbnail = ({ week }) => (
 )
 
 export default function LecturesComponent() {
-  const router = useRouter()
   const [liveLectures, setLiveLectures]       = useState([])
   const [recordedLectures, setRecordedLectures] = useState([])
-  const [loading, setLoading]                 = useState(true)
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery]         = useState('')
   const [selectedSubject, setSelectedSubject] = useState('All')
   const [selectedWeek, setSelectedWeek]       = useState('All')
+  const router = useRouter()
 
-  useEffect(() => { fetchLectures() }, [])
+  useEffect(() => {
+    fetchLectures()
+  }, [])
 
   const fetchLectures = async () => {
     try {
-      setLiveLectures([
-        { id: 1, title: 'Mechatronics Systems', instructor: 'Dr. Sherif Ibrahim', image: 'Pics/1.jpg', time: '2:00 PM' },
-        { id: 2, title: 'AI Ethics',            instructor: 'Dr. Mona Elsayed',   image: 'Pics/2.jpg', time: '3:00 PM' },
-      ])
-      setRecordedLectures([
-        { id: 1, subject: 'Data Engineering',  week: 'Week 6', title: 'Week 6 - Data Engineering',  instructor: 'Dr. Ahmed Mohammed', duration: '1h 30m', uploadDate: '2024-03-01' },
-        { id: 2, subject: 'Web Development',   week: 'Week 5', title: 'Week 5 - Web Development',   instructor: 'Dr. Fatima Ali',     duration: '2h 15m', uploadDate: '2024-02-28' },
-        { id: 3, subject: 'Database Design',   week: 'Week 4', title: 'Week 4 - Database Design',   instructor: 'Dr. Mahmoud Hassan', duration: '1h 45m', uploadDate: '2024-02-27' },
-        { id: 4, subject: 'Data Engineering',  week: 'Week 5', title: 'Week 5 - Data Engineering',  instructor: 'Dr. Ahmed Mohammed', duration: '1h 10m', uploadDate: '2024-02-24' },
-        { id: 5, subject: 'Web Development',   week: 'Week 4', title: 'Week 4 - Web Development',   instructor: 'Dr. Fatima Ali',     duration: '1h 55m', uploadDate: '2024-02-20' },
-        { id: 6, subject: 'Database Design',   week: 'Week 6', title: 'Week 6 - Database Design',   instructor: 'Dr. Mahmoud Hassan', duration: '2h 00m', uploadDate: '2024-03-02' },
-      ])
+      const studentId = localStorage.getItem('studentId') || localStorage.getItem('userId');
+      if (studentId) {
+        const res = await api.lectures.getByStudentId(studentId);
+        if (res.status === 'success' && res.data) {
+           const live = [];
+           const recorded = [];
+           res.data.forEach(item => {
+             const lectureObj = {
+               id: item.id,
+               title: item.name || 'Untitled Lecture',
+               instructor: item.doctor_name || `Dr. #${item.doctor_id || ''}`,
+               subject: item.course_name || 'General',
+               time: item.start_time || '10:00 AM',
+               uploadDate: item.start_time ? new Date(item.start_time).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+               duration: item.duration || '1h 30m',
+               week: `Week ${item.week || 1}`,
+               image: 'Pics/2.jpg',
+               liveUrl: item.live_url
+             };
+             if (item.status === 'live') live.push(lectureObj);
+             else recorded.push(lectureObj);
+           });
+           setLiveLectures(live);
+           setRecordedLectures(recorded);
+        }
+      }
     } catch (err) {
       console.error('Error:', err)
     } finally {

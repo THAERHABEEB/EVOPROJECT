@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CalendarIcon } from '@/app/components/Icons'
+import { api } from '@/lib/api'
 
 export default function AssignmentsComponent() {
   const [assignments, setAssignments] = useState([])
@@ -11,47 +12,23 @@ export default function AssignmentsComponent() {
 
   const fetchAssignments = async () => {
     try {
-      // TODO: استبدل بـ API call الفعلي
-      setAssignments([
-        {
-          id: 1,
-          title: 'Web Development Project',
-          subject: 'Web Development',
-          dueDate: '2024-03-25',
-          status: 'pending',
-          description: 'Develop a website with React and Node.js',
-          points: 50
-        },
-        {
-          id: 2,
-          title: 'Machine Learning Research',
-          subject: 'AI',
-          dueDate: '2024-03-20',
-          status: 'submitted',
-          submittedDate: '2024-03-19',
-          grade: 45,
-          description: 'Research on Machine Learning applications',
-          points: 50
-        },
-        {
-          id: 3,
-          title: 'Programming Problems',
-          subject: 'Data Structures',
-          dueDate: '2024-03-22',
-          status: 'pending',
-          description: 'Solve 10 advanced programming problems',
-          points: 50
-        },
-        {
-          id: 4,
-          title: 'Database Project',
-          subject: 'Database Design',
-          dueDate: '2024-04-05',
-          status: 'pending',
-          description: 'Design and develop a database',
-          points: 100
-        },
-      ])
+      const studentId = localStorage.getItem('studentId') || localStorage.getItem('userId');
+      if (studentId) {
+        const res = await api.assignments.getByStudentId(studentId);
+        if (res.status === 'success' && res.data) {
+           const mapped = res.data.map(item => ({
+              id: item.id,
+              title: item.title || 'Untitled Assignment',
+              subject: item.course_name || 'General',
+              dueDate: item.end_date ? new Date(item.end_date).toISOString().split('T')[0] : 'No Date',
+              status: new Date(item.end_date) < new Date() ? 'submitted' : 'pending',
+              description: item.description || '',
+              points: 50
+           }));
+           setAssignments(mapped);
+        }
+      }
+      setLoading(false)
     } catch (err) {
       console.error('Error:', err)
     } finally {
