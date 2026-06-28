@@ -15,6 +15,7 @@ import AssignmentsComponent from './components/AssignmentsComponent'
 import PaymentsComponent from './components/PaymentsComponent'
 import RoadmapComponent from './components/RoadmapComponent'
 import ProfileComponent from './components/ProfileComponent'
+import PhotoZoomModal from '@/app/components/PhotoZoomModal'
 import {
   ChartBarIcon, VideoIcon, TargetIcon, TrendUpIcon,
   CheckCircleIcon, MapIcon, CreditCardIcon
@@ -29,6 +30,7 @@ export default function StudentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
+  const [zoomPhoto, setZoomPhoto] = useState(null)
 
   const fetchStudentInfo = async () => {
     try {
@@ -167,7 +169,13 @@ export default function StudentPage() {
             }}
             title="View full profile"
           >
-            <img src={studentInfo?.image || 'Pics/student.jpg'} alt="Student" />
+            <img
+              src={studentInfo?.image || 'Pics/student.jpg'}
+              alt="Student"
+              onClick={() => setZoomPhoto(studentInfo?.image || 'Pics/student.jpg')}
+              title="Click to zoom"
+              style={{ cursor: 'zoom-in' }}
+            />
             <div>
               <strong>{studentInfo?.name || 'Loading profile...'}</strong><br />
               <small>{studentInfo?.specialty || 'Academic Status'}</small>
@@ -297,6 +305,7 @@ export default function StudentPage() {
       `}</style>
 
       <CircularMenu loading={isLoading} />
+      <PhotoZoomModal src={zoomPhoto} alt={studentInfo?.name} onClose={() => setZoomPhoto(null)} />
     </>
   )
 }

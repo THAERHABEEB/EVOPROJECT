@@ -151,27 +151,64 @@ router.get('/:id/roadmap', async (req, res) => {
   }
 });
 
+// GET all lectures for a student (live + recorded, enrolled courses only)
+router.get('/:id/lectures', async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const query = `
+      SELECT
+        l.id as lecture_id,
+        COALESCE(m.id, l.id) as id,
+        c.name as subject,
+        COALESCE(m.name, l.name) as title,
+        d.name as instructor,
+        d.photo as thumbnail,
+        m.file_size as duration,
+        COALESCE(m.folder, l.live_url) as url,
+        l.name as lecture_name,
+        l.created_at,
+        l.status
+      FROM "lecture" l
+      JOIN "course" c ON l.course_id = c.id
+      JOIN "doctor" d ON l.doctor_id = d.id
+      JOIN "enrollments" e ON e.course_id = c.id AND e.student_id = $1
+      LEFT JOIN "lecture_materials" m ON m.lecture_id = l.id
+      ORDER BY l.created_at DESC NULLS LAST
+    `;
+    const rows = await getAll(query, [studentId]) || [];
+    const live = rows.filter(r => String(r.status).toLowerCase() === 'live');
+    const recorded = rows.filter(r => ['recorded', 'published'].includes(String(r.status).toLowerCase()));
+    res.json({ status: 'success', data: { live, recorded } });
+  } catch (error) {
+    console.error('Error fetching student lectures:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
 // GET recorded lectures for a student
 router.get('/:id/recorded-lectures', async (req, res) => {
   try {
     const studentId = req.params.id;
     const query = `
       SELECT DISTINCT
-        m.id,
+        COALESCE(m.id, l.id) as id,
+        l.id as lecture_id,
         c.name as subject,
-        m.name as title,
+        COALESCE(m.name, l.name) as title,
         d.name as instructor,
+        d.photo as thumbnail,
         m.file_size as duration,
-        m.folder as url,
+        COALESCE(m.folder, l.live_url) as url,
         l.name as lecture_name,
-        l.created_at
-      FROM "lecture_materials" m
-      JOIN "lecture" l ON m.lecture_id = l.id
+        l.created_at,
+        l.status
+      FROM "lecture" l
       JOIN "course" c ON l.course_id = c.id
       JOIN "doctor" d ON l.doctor_id = d.id
       JOIN "enrollments" e ON e.course_id = c.id AND e.student_id = $1
-      WHERE l.status = 'Recorded'
-      ORDER BY l.created_at DESC, m.id DESC
+      LEFT JOIN "lecture_materials" m ON m.lecture_id = l.id
+      WHERE LOWER(l.status) IN ('recorded', 'published')
+      ORDER BY l.created_at DESC, m.id DESC NULLS LAST
     `;
     const lectures = await getAll(query, [studentId]);
     res.json({ status: 'success', data: lectures });

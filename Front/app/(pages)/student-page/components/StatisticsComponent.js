@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -24,7 +26,7 @@ export default function StatisticsComponent({ studentId }) {
     try {
       setLoading(true)
       setError(null)
-      const res = await api.request(`/statistics/student/${studentId}`)
+      const res = await api.statistics.getByStudentId(studentId)
       if (res.status === 'success') {
         setStats(res.data)
       } else {

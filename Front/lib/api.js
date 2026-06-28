@@ -130,6 +130,7 @@ export const api = {
     getActivities: (id) => request(`/students/${id}/activities`),
     getRoadmap: (id) => request(`/students/${id}/roadmap`),
     getRecordedLectures: (id) => request(`/students/${id}/recorded-lectures`),
+    getLectures: (id) => request(`/students/${id}/lectures`),
   },
   // Helper to update specialization specifically
   studentsSpecialization: {
@@ -154,6 +155,10 @@ export const api = {
       method: 'POST',
       body: { student_id: studentId, activity_id: activityId },
     }),
+  },
+  statistics: {
+    getByStudentId: (studentId) => request(`/statistics/student/${studentId}`),
+    getByDoctorId: (doctorId) => request(`/statistics/doctor/${doctorId}`),
   },
   health: () => request('/health', { method: 'GET' }),
   request,

@@ -30,44 +30,81 @@ const ChevronIcon = () => (
   </svg>
 )
 
-/* Play-button thumbnail */
-const VideoThumbnail = ({ week }) => (
+/* Play-button thumbnail with lecture photo */
+const getLectureThumbnail = (item) => {
+  if (item?.thumbnail) return item.thumbnail
+  const url = item?.url || ''
+  if (url.includes('cloudinary.com') && url.includes('/video/')) {
+    return url.replace('/video/upload/', '/video/upload/so_0/').replace(/\.[^/.?]+(?=\?|$)/, '.jpg')
+  }
+  return '/Pics/11.png'
+}
+
+const VideoThumbnail = ({ week, image }) => (
   <div style={{
-    background: 'linear-gradient(135deg, #1a1a3e 0%, #2a2a5e 100%)',
     borderRadius: '8px',
     height: '110px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: '14px',
     position: 'relative',
     overflow: 'hidden',
+    background: 'linear-gradient(135deg, #1a1a3e 0%, #2a2a5e 100%)',
   }}>
-    {/* glow ring */}
+    <img
+      src={image}
+      alt=""
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      onError={(e) => { e.currentTarget.src = '/Pics/11.png' }}
+    />
     <div style={{
-      width: '52px', height: '52px', borderRadius: '50%',
-      background: 'rgba(193,154,107,0.15)',
-      border: '2px solid rgba(193,154,107,0.4)',
+      position: 'absolute', inset: 0,
+      background: 'rgba(0,0,0,0.25)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#c19a6b">
-        <polygon points="5,3 19,12 5,21"/>
-      </svg>
+      <div style={{
+        width: '52px', height: '52px', borderRadius: '50%',
+        background: 'rgba(193,154,107,0.35)',
+        border: '2px solid rgba(193,154,107,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+      </div>
     </div>
     {week && (
       <span style={{
         position: 'absolute', top: '8px', left: '8px',
-        background: 'rgba(111,195,255,0.18)',
-        border: '1px solid #6fc3ff',
-        color: '#6fc3ff', fontSize: '10px', fontWeight: 700,
-        borderRadius: '4px', padding: '2px 7px', letterSpacing: '0.5px',
+        background: 'rgba(111,195,255,0.85)',
+        color: '#fff', fontSize: '10px', fontWeight: 700,
+        borderRadius: '4px', padding: '2px 7px',
       }}>
         {week}
       </span>
     )}
   </div>
 )
+
+const mapLectureRow = (item, weekMap) => {
+  const subject = item.subject || 'General'
+  weekMap[subject] = (weekMap[subject] || 0) + 1
+  const weekLabel = item.lecture_name?.match(/week\s*\d+/i)?.[0]
+    || item.lecture_name
+    || `Week ${weekMap[subject]}`
+
+  return {
+    id: item.lecture_id || item.id,
+    subject,
+    week: weekLabel,
+    title: item.title || item.lecture_name || 'Untitled Lecture',
+    instructor: item.instructor || 'Instructor',
+    duration: item.duration ? `${item.duration}` : 'N/A',
+    uploadDate: item.created_at
+      ? new Date(item.created_at).toLocaleDateString()
+      : new Date().toLocaleDateString(),
+    url: item.url,
+    image: getLectureThumbnail(item),
+  }
+}
 
 export default function LecturesComponent({ studentId }) {
   const router = useRouter()
@@ -85,61 +122,33 @@ export default function LecturesComponent({ studentId }) {
   const fetchLectures = async () => {
     try {
       setLoading(true)
-      setLiveLectures([
-        { id: 1, title: 'Mechatronics Systems', instructor: 'Dr. Sherif Ibrahim', image: 'Pics/1.jpg', time: '2:00 PM' },
-      ])
+      const res = await api.students.getLectures(studentId)
 
-      let lectures = []
-      try {
-        const res = await api.students.getRecordedLectures(studentId)
-        if (res.status === 'success' && res.data) lectures = res.data
-      } catch (err) {
-        console.warn('Recorded lectures API failed, trying enrollments fallback:', err)
+      if (res.status === 'success' && res.data) {
+        const weekMapLive = {}
+        const weekMapRecorded = {}
+        const live = (res.data.live || []).map(item => ({
+          ...mapLectureRow(item, weekMapLive),
+          time: item.created_at
+            ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : 'Now',
+        }))
+        const recorded = (res.data.recorded || []).map(item => mapLectureRow(item, weekMapRecorded))
+
+        setLiveLectures(live)
+        setRecordedLectures(recorded)
+        return
       }
 
-      if (lectures.length === 0) {
-        const fallback = await api.lectures.getByStudentId(studentId)
-        if (fallback.status === 'success' && fallback.data) {
-          lectures = fallback.data
-            .filter(l => l.status === 'Recorded')
-            .map(l => ({
-              id: l.id,
-              subject: l.course_name,
-              title: l.name,
-              instructor: 'Instructor',
-              duration: 'N/A',
-              url: l.live_url,
-              lecture_name: l.name,
-              created_at: l.created_at,
-            }))
-        }
-      }
-
+      const fallback = await api.students.getRecordedLectures(studentId)
       const weekMap = {}
-      const mappedLectures = lectures.map((item, idx) => {
-        const subject = item.subject || 'General'
-        weekMap[subject] = (weekMap[subject] || 0) + 1
-        const weekLabel = item.lecture_name
-          ? item.lecture_name.replace(/^Week\s*/i, 'Week ')
-          : `Week ${weekMap[subject]}`
-
-        return {
-          id: item.id,
-          subject,
-          week: weekLabel,
-          title: item.title || item.lecture_name || 'Untitled Lecture',
-          instructor: item.instructor || 'Instructor',
-          duration: item.duration ? `${item.duration}` : 'N/A',
-          uploadDate: item.created_at
-            ? new Date(item.created_at).toLocaleDateString()
-            : new Date().toLocaleDateString(),
-          url: item.url
-        }
-      })
-
-      setRecordedLectures(mappedLectures)
+      const recorded = (fallback.data || []).map(item => mapLectureRow(item, weekMap))
+      setLiveLectures([])
+      setRecordedLectures(recorded)
     } catch (err) {
       console.error('Error fetching lectures:', err)
+      setLiveLectures([])
+      setRecordedLectures([])
     } finally {
       setLoading(false)
     }
@@ -174,6 +183,11 @@ export default function LecturesComponent({ studentId }) {
         <>
           {/* ══════════ Live Lectures ══════════ */}
           <h2 style={{ color: '#6fc3ff', fontWeight: 'bold' }} className="mb-4">Live Lectures Now</h2>
+          {liveLectures.length === 0 ? (
+            <div className="alert alert-secondary mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(111,195,255,0.2)', color: '#aaa' }}>
+              No live lectures right now for your enrolled courses.
+            </div>
+          ) : (
           <div className="row g-4 mb-5">
             {liveLectures.map((lecture) => (
               <div key={lecture.id} className="col-lg-6">
@@ -192,10 +206,10 @@ export default function LecturesComponent({ studentId }) {
                   }}>
                     <LiveDotIcon size={12} style={{ marginRight: '6px' }} /> Live Now
                   </div>
-                  <img src={lecture.image} className="w-100" style={{ height: '280px', objectFit: 'cover' }} />
+                  <img src={lecture.image} alt={lecture.title} className="w-100" style={{ height: '280px', objectFit: 'cover' }} />
                   <div style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      <img src="Pics/logo.png" width="60" style={{ borderRadius: '50%', border: '2px solid #6fc3ff' }} />
+                      <img src={lecture.image} width="60" height="60" alt={lecture.instructor} style={{ borderRadius: '50%', border: '2px solid #6fc3ff', objectFit: 'cover' }} />
                       <div>
                         <h5 style={{ marginBottom: 0, color: '#6fc3ff' }}>{lecture.title}</h5>
                         <small style={{ color: '#ccc' }}>{lecture.instructor}</small>
@@ -221,6 +235,7 @@ export default function LecturesComponent({ studentId }) {
               </div>
             ))}
           </div>
+          )}
 
           {/* ══════════ Recorded Lectures ══════════ */}
           <h2 style={{ color: '#6fc3ff', fontWeight: 'bold' }} className="mt-5 mb-4">Recorded Lectures</h2>
@@ -353,7 +368,7 @@ export default function LecturesComponent({ studentId }) {
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c19a6b'; e.currentTarget.style.transform = 'translateY(-3px)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(111,195,255,0.3)'; e.currentTarget.style.transform = 'translateY(0)' }}
                   >
-                    <VideoThumbnail week={lecture.week} />
+                    <VideoThumbnail week={lecture.week} image={lecture.image} />
 
                     <div style={{ flex: 1 }}>
                       <h6 style={{ color: '#6fc3ff', marginBottom: '6px', lineHeight: 1.4 }}>{lecture.title}</h6>
