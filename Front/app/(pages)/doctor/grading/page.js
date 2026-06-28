@@ -11,13 +11,34 @@ const MOCK_SUBMISSIONS = [
   { id: 3, studentName: 'Omar Hassan', studentId: '247404', assignment: 'Logic Circuits Quiz', fileName: 'quiz1_omar.pdf', date: '2026-03-11', grade: '', feedback: '' },
 ]
 
+import api from '@/lib/api'
+
 export default function GradingPage() {
-  const [submissions, setSubmissions] = useState(MOCK_SUBMISSIONS)
+  const [submissions, setSubmissions] = useState([])
+  const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
   const [tempGrade, setTempGrade] = useState('')
   const [tempFeedback, setTempFeedback] = useState('')
 
   useEffect(() => {
+    const fetchSubmissions = async () => {
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) return
+        
+        const res = await api.request(`/quiz/submissions/doctor/${userId}`)
+        if (res.status === 'success') {
+          setSubmissions(res.data)
+        }
+      } catch (err) {
+        console.error('Error fetching submissions:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSubmissions()
+
     const handleMouseMove = (e) => {
       const glow = document.getElementById('cursor-glow')
       if (glow) {
@@ -31,15 +52,17 @@ export default function GradingPage() {
 
   const startGrading = (sub) => {
     setEditingId(sub.id)
-    setTempGrade(sub.grade)
-    setTempFeedback(sub.feedback)
+    setTempGrade(sub.score)
+    setTempFeedback('')
   }
 
-  const saveGrade = (id) => {
+  const saveGrade = async (id) => {
+    // For now we just update local state, but normally we'd call an API here
     setSubmissions(prev => prev.map(sub => 
-      sub.id === id ? { ...sub, grade: tempGrade, feedback: tempFeedback } : sub
+      sub.id === id ? { ...sub, score: tempGrade } : sub
     ))
     setEditingId(null)
+    alert('Grade updated locally. In a full implementation, this would sync to the Grade table.')
   }
 
   return (
@@ -54,7 +77,11 @@ export default function GradingPage() {
         </div>
 
         <div className="row g-4">
-          {submissions.map(sub => (
+          {loading ? (
+            <div className="col-12 text-center text-muted">Loading submissions...</div>
+          ) : submissions.length === 0 ? (
+            <div className="col-12 text-center text-muted">No submissions found.</div>
+          ) : submissions.map(sub => (
             <div key={sub.id} className="col-12">
               <div 
                 style={{ 
@@ -69,15 +96,14 @@ export default function GradingPage() {
                   overflow: 'hidden'
                 }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: sub.grade ? '#28a745' : '#c4a16b' }}></div>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: sub.score !== null ? '#28a745' : '#c4a16b' }}></div>
                 
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4">
                   <div className="text-start flex-grow-1">
-                    <h5 style={{ color: '#2b3a55', fontWeight: 700, margin: 0 }}>{sub.studentName} <span style={{ fontWeight: 400, color: '#888', fontSize: '0.9rem' }}>(ID: {sub.studentId})</span></h5>
-                    <p style={{ margin: '5px 0', color: '#c4a16b', fontWeight: 600 }}>{sub.assignment}</p>
+                    <h5 style={{ color: '#2b3a55', fontWeight: 700, margin: 0 }}>{sub.student_name} <span style={{ fontWeight: 400, color: '#888', fontSize: '0.9rem' }}>(ID: {sub.student_id})</span></h5>
+                    <p style={{ margin: '5px 0', color: '#c4a16b', fontWeight: 600 }}>{sub.quiz_title}</p>
                     <div className="d-flex gap-3 align-items-center opacity-75">
-                      <small><i className="bi bi-file-earmark-text"></i> {sub.fileName}</small>
-                      <small><i className="bi bi-calendar3"></i> {sub.date}</small>
+                      <small><i className="bi bi-clock"></i> Submitted: {new Date(sub.submitted_at).toLocaleString()}</small>
                     </div>
                   </div>
 
@@ -85,39 +111,32 @@ export default function GradingPage() {
                     <div className="d-flex flex-column gap-2" style={{ minWidth: '300px' }}>
                       <div className="d-flex gap-2">
                         <input 
-                          type="text" 
+                          type="number" 
                           className="form-control" 
-                          placeholder="Grade" 
+                          placeholder="Score" 
                           value={tempGrade} 
                           onChange={e => setTempGrade(e.target.value)}
-                          style={{ width: '80px', borderRadius: '8px', border: '1px solid #c4a16b' }}
+                          style={{ width: '100px', borderRadius: '8px', border: '1px solid #c4a16b' }}
                         />
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          placeholder="Feedback..." 
-                          value={tempFeedback} 
-                          onChange={e => setTempFeedback(e.target.value)}
-                          style={{ borderRadius: '8px', border: '1px solid #c4a16b' }}
-                        />
+                        <span className="align-self-center"> / {sub.total_possible}</span>
                       </div>
                       <div className="d-flex gap-2">
-                        <button onClick={() => saveGrade(sub.id)} className="btn w-100" style={{ background: '#2b3a55', color: 'white', borderRadius: '8px', fontWeight: 600 }}>Save Changes</button>
+                        <button onClick={() => saveGrade(sub.id)} className="btn w-100" style={{ background: '#2b3a55', color: 'white', borderRadius: '8px', fontWeight: 600 }}>Save</button>
                         <button onClick={() => setEditingId(null)} className="btn btn-light w-100" style={{ borderRadius: '8px' }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
                     <div className="d-flex align-items-center gap-4">
                       <div className="text-center">
-                        <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, color: sub.grade ? '#28a745' : '#888' }}>{sub.grade || '—'}</span>
-                        <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700, opacity: 0.6 }}>Grade</small>
+                        <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, color: sub.score !== null ? '#28a745' : '#888' }}>{sub.score !== null ? `${sub.score}/${sub.total_possible}` : '—'}</span>
+                        <small style={{ textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700, opacity: 0.6 }}>Score</small>
                       </div>
                       <button 
                         onClick={() => startGrading(sub)} 
                         className="btn" 
                         style={{ background: 'linear-gradient(to right, #c4a16b, #e0c89c)', color: 'white', borderRadius: '10px', padding: '10px 25px', fontWeight: 700, boxShadow: '0 4px 15px rgba(196,161,107,0.3)' }}
                       >
-                        {sub.grade ? 'Edit Grade' : 'Grade Now'}
+                        {sub.score !== null ? 'Edit Score' : 'Grade Now'}
                       </button>
                     </div>
                   )}

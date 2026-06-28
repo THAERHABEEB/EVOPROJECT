@@ -1,31 +1,49 @@
 import { useState, useEffect } from 'react'
 import { CalendarIcon } from '@/app/components/Icons'
-import api from '../../../../lib/api'
+import api from '@/lib/api'
 
-export default function ActivitiesComponent() {
+export default function ActivitiesComponent({ studentId }) {
   const [activities, setActivities] = useState([])
+  const [studentActivityIds, setStudentActivityIds] = useState([])
   const [loading, setLoading] = useState(true)
-  const [expandedActivityId, setExpandedActivityId] = useState(null)
 
   useEffect(() => {
-    fetchActivities()
-  }, [])
+    if (studentId) fetchAllData()
+  }, [studentId])
 
-  const fetchActivities = async () => {
+  const fetchAllData = async () => {
     try {
-      const userId = localStorage.getItem('userId');
-      if (!userId) {
-        setLoading(false);
-        return;
+      setLoading(true)
+      // Fetch all available activities
+      const allRes = await api.activities.getAll()
+      
+      // Fetch student specific activities to know what they've joined
+      const studentRes = await api.activities.getStudentActivities(studentId)
+      
+      if (allRes.status === 'success') {
+        setActivities(allRes.data)
       }
-      const res = await api.students.getActivities(userId);
-      if (res.status === 'success' && res.data) {
-        setActivities(res.data);
+      
+      if (studentRes.status === 'success') {
+        setStudentActivityIds(studentRes.data.map(a => a.id))
       }
     } catch (err) {
       console.error('Error fetching activities:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleJoin = async (activityId) => {
+    try {
+      const res = await api.activities.join(studentId, activityId)
+      if (res.status === 'success') {
+        setStudentActivityIds([...studentActivityIds, activityId])
+        alert('Joined activity successfully! 🚀')
+      }
+    } catch (err) {
+      console.error('Error joining activity:', err)
+      alert('Failed to join activity.')
     }
   }
 
@@ -35,23 +53,6 @@ export default function ActivitiesComponent() {
 
   const getStatusText = (status) => {
     return status === 'upcoming' ? 'Coming Soon' : 'Completed'
-  }
-
-  const toggleDetails = (id) => {
-    if (expandedActivityId === id) {
-      setExpandedActivityId(null);
-    } else {
-      setExpandedActivityId(id);
-    }
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'TBA';
-    try {
-      return new Date(dateString).toISOString().split('T')[0];
-    } catch (e) {
-      return dateString;
-    }
   }
 
   return (
@@ -64,33 +65,16 @@ export default function ActivitiesComponent() {
           
           <div className="row g-4">
             {activities.map((activity) => (
-              <div key={activity.id} className="col-lg-6 col-md-6 col-sm-12">
+              <div key={activity.id} className="col-lg-6">
                 <div style={{
                   background: 'rgba(255,255,255,0.05)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid #6fc3ff',
-                  borderRadius: '12px',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden'
+                  borderRadius: '8px',
+                  padding: '20px'
                 }}>
-                  {activity.img_url && (
-                    <img 
-                      src={activity.img_url} 
-                      alt={activity.title} 
-                      style={{
-                        width: '100%',
-                        height: '180px',
-                        objectFit: 'cover',
-                        borderBottom: '1px solid rgba(111, 195, 255, 0.3)'
-                      }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  )}
-                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                      <div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                    <div>
                       <h5 style={{color: '#6fc3ff'}}>{activity.title}</h5>
                       <small style={{color: '#999'}}>Category: {activity.category}</small>
                     </div>
@@ -99,17 +83,7 @@ export default function ActivitiesComponent() {
                     </span>
                   </div>
                   
-                  {/* Activity Description (Expandable) */}
-                  <div style={{
-                    maxHeight: expandedActivityId === activity.id ? '500px' : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease-in-out',
-                    marginTop: expandedActivityId === activity.id ? '15px' : '0'
-                  }}>
-                    <p style={{color: '#ccc', margin: '0', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '0.9rem'}}>
-                      {activity.description}
-                    </p>
-                  </div>
+                  <p style={{color: '#ccc', margin: '10px 0'}}>{activity.description}</p>
                   
                   <div style={{
                     display: 'flex',
@@ -117,25 +91,30 @@ export default function ActivitiesComponent() {
                     alignItems: 'center',
                     borderTop: '1px solid #333',
                     paddingTop: '10px',
-                    marginTop: 'auto' // Push to bottom
+                    marginTop: '10px'
                   }}>
-                    <small style={{color: '#999'}}><CalendarIcon size={13} color="#999" style={{marginRight: '4px'}} />{formatDate(activity.date)}</small>
-                    <button 
-                      className="btn btn-outline-info btn-sm"
-                      onClick={() => toggleDetails(activity.id)}
-                    >
-                      {expandedActivityId === activity.id ? 'Hide Details' : 'Details'}
-                    </button>
+                    <small style={{color: '#999'}}><CalendarIcon size={13} color="#999" style={{marginRight: '4px'}} />{new Date(activity.date).toLocaleDateString()}</small>
+                    
+                    {activity.status === 'completed' ? (
+                      <button className="btn btn-outline-info btn-sm">Details</button>
+                    ) : (
+                      <button 
+                        className={`btn btn-sm ${studentActivityIds.includes(activity.id) ? 'btn-success' : 'btn-primary'}`}
+                        disabled={studentActivityIds.includes(activity.id)}
+                        onClick={() => handleJoin(activity.id)}
+                      >
+                        {studentActivityIds.includes(activity.id) ? 'Joined ✅' : 'Join Activity'}
+                      </button>
+                    )}
                   </div>
-                </div>
                 </div>
               </div>
             ))}
           </div>
 
           {activities.length === 0 && (
-            <div className="alert alert-info mt-4" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid #6fc3ff' }}>
-              No activities currently available for your profile.
+            <div className="alert alert-info mt-4">
+              No activities currently available
             </div>
           )}
         </>

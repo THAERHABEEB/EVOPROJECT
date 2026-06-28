@@ -1,16 +1,14 @@
 'use client'
-import { useState } from 'react'
 import { UserIcon, IdCardIcon, GraduationIcon, PhoneIcon, LocationIcon } from '@/app/components/Icons'
 
 export default function ProfileComponent({ studentInfo }) {
-  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false)
   const info = studentInfo || {
-    name: 'Abdulrahman Reda Kamel',
-    specialty: 'Data Science - Year 2',
-    studentId: '247818',
-    phone: '0155984249',
-    address: '10th of Ramadan',
-    image: '/Pics/student.jpg',
+    name: '',
+    specialty: '',
+    studentId: '',
+    phone: '',
+    address: '',
+    image: 'Pics/student.jpg',
   }
 
   const fields = [
@@ -30,9 +28,6 @@ export default function ProfileComponent({ studentInfo }) {
             src={info.image}
             alt="Student"
             className="profile-page__avatar"
-            style={{ cursor: 'zoom-in' }}
-            onClick={() => setIsPhotoExpanded(true)}
-            onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
           />
           <span className="profile-page__badge">Student</span>
         </div>
@@ -56,80 +51,7 @@ export default function ProfileComponent({ studentInfo }) {
         ))}
       </div>
 
-      {/* Expanded Photo Modal */}
-      {isPhotoExpanded && (
-        <div 
-          onClick={() => setIsPhotoExpanded(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            zIndex: 99999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            cursor: 'zoom-out',
-            backdropFilter: 'blur(5px)'
-          }}
-        >
-          <img
-            src={info.image}
-            alt="Student Enlarged"
-            onClick={(e) => e.stopPropagation()}
-            onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
-            style={{
-              maxHeight: '85vh',
-              maxWidth: '90vw',
-              borderRadius: '20px',
-              border: '4px solid #c19a6b',
-              boxShadow: '0 0 40px rgba(193,154,107,0.5)',
-              objectFit: 'contain',
-              cursor: 'default',
-              animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            }}
-          />
-          <button 
-            onClick={() => setIsPhotoExpanded(false)}
-            style={{
-              position: 'absolute',
-              top: '25px',
-              right: '35px',
-              background: 'rgba(0,0,0,0.5)',
-              border: '2px solid #c19a6b',
-              color: '#fff',
-              fontSize: '24px',
-              width: '45px',
-              height: '45px',
-              borderRadius: '50%',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#c19a6b';
-              e.currentTarget.style.color = '#000';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(0,0,0,0.5)';
-              e.currentTarget.style.color = '#fff';
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       <style>{`
-        @keyframes popIn {
-          from { opacity: 0; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1); }
-        }
-
         .profile-page {
           padding: 24px;
           max-width: 860px;

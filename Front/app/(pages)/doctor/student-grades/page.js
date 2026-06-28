@@ -22,34 +22,43 @@ export default function StudentGradesPage() {
         let userId = localStorage.getItem('userId')
         const token = localStorage.getItem('token')
         
+        console.log('Initializing Grades Page. userId:', userId);
+
         if (!userId && token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]))
-            userId = payload.id
+            userId = payload.id || payload.userId
             if (userId) localStorage.setItem('userId', userId)
           } catch (e) { console.error('Error decoding token:', e) }
         }
 
         if (!userId) {
-          console.error('No userId found')
+          console.error('No userId found in localStorage or token')
           setLoading(false)
           return
         }
 
         // 1. Get doctor record
         const drRes = await api.doctors.getAll({ user_id: userId })
+        console.log('Doctor Fetch Result:', drRes);
+
         if (drRes.status === 'success' && drRes.data.length > 0) {
           const dr = drRes.data[0]
           setDoctorData(dr)
           
-          // 2. Get courses for this doctor
-          const coursesRes = await api.doctors.getCourses(dr.id)
+          // 2. Get courses for this doctor (API expects user id)
+          console.log('Fetching courses for User ID:', userId);
+          const coursesRes = await api.doctors.getCourses(userId)
+          console.log('Courses Fetch Result:', coursesRes);
+
           if (coursesRes.status === 'success') {
             setCourses(coursesRes.data)
             if (coursesRes.data.length > 0) {
               setSelectedCourseId(coursesRes.data[0].id)
             }
           }
+        } else {
+          console.warn('No doctor profile found for user_id:', userId);
         }
       } catch (error) {
         console.error('Error initializing page:', error)
@@ -240,7 +249,25 @@ export default function StudentGradesPage() {
           </div>
 
           <div className="row g-3 mb-4">
-             <div className="col-md-6">
+             <div className="col-md-3">
+                <label style={labelStyle}>Filter By Term</label>
+                <select 
+                  className="form-select"
+                  onChange={e => {
+                    const term = e.target.value;
+                    const filtered = courses.filter(c => !term || String(c.year_level) === term);
+                    if (filtered.length > 0) setSelectedCourseId(filtered[0].id);
+                    else setSelectedCourseId('');
+                  }}
+                  style={selectStyle}
+                >
+                  <option value="">All Terms</option>
+                  {[...new Set(courses.map(c => c.year_level))].sort().map(term => (
+                    <option key={term} value={term}>Year {term}</option>
+                  ))}
+                </select>
+             </div>
+             <div className="col-md-5">
                 <label style={labelStyle}>Select Subject / Course</label>
                 <select 
                   value={selectedCourseId} 
@@ -248,13 +275,19 @@ export default function StudentGradesPage() {
                   style={selectStyle}
                 >
                   {courses.length > 0 ? (
-                    courses.map(c => <option key={c.id} value={c.id}>{c.name} (ID: {c.id})</option>)
+                    [...new Set(courses.map(c => c.year_level))].sort().map(year => (
+                      <optgroup key={year} label={`Academic Year ${year}`}>
+                        {courses.filter(c => c.year_level === year).map(c => (
+                          <option key={c.id} value={c.id}>{c.name} (ID: {c.id})</option>
+                        ))}
+                      </optgroup>
+                    ))
                   ) : (
                     <option disabled>No courses assigned</option>
                   )}
                 </select>
              </div>
-             <div className="col-md-6 d-flex flex-column justify-content-end">
+             <div className="col-md-4 d-flex flex-column justify-content-end">
                 <label style={labelStyle}>Search Students</label>
                 <div style={{ position: 'relative' }}>
                   <i className="bi bi-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#c4a16b', fontSize: '0.9rem' }}></i>

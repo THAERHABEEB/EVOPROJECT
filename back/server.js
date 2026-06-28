@@ -25,6 +25,7 @@ const allowedOrigins = [
   /\.netlify\.app$/,
   // Allow all Render deployments
   /\.onrender\.com$/,
+  /\.railway\.app$/,
 ];
 
 const uploadsDir = path.join(__dirname, 'uploads');

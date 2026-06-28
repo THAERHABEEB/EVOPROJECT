@@ -5,6 +5,24 @@ const path = require('path');
 const { getOne, getAll, runQuery, pool } = require('../config/db.js');
 const authenticateToken = require('../middleware/auth.js');
 
+const GRADES_FOLDER = 'grades';
+
+function getGradesDir() {
+  const dir = path.join(__dirname, '../uploads', GRADES_FOLDER);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+function resolveGradeFilePath(folder, fileName) {
+  const backendPath = path.join(__dirname, '../uploads', folder, fileName);
+  if (fs.existsSync(backendPath)) return backendPath;
+  const frontPath = path.resolve(__dirname, '../../front/public', folder, fileName);
+  if (fs.existsSync(frontPath)) return frontPath;
+  return backendPath;
+}
+
 // Apply authentication middleware to all routes in this router
 router.use(authenticateToken);
 
@@ -67,7 +85,7 @@ router.put('/:id', async (req, res) => {
     // 2. Start Processing if status changed to 'Approved'
     if (status === 'Approved' && existingRecord.status !== 'Approved') {
         const { course_id, file_name, folder } = existingRecord;
-        const filePath = path.resolve(__dirname, '../../Front/public', folder, file_name);
+        const filePath = resolveGradeFilePath(folder, file_name);
 
         if (!fs.existsSync(filePath)) {
             console.error('File not found:', filePath);
@@ -182,27 +200,52 @@ router.post('/submit', async (req, res) => {
     // 4. Save or Update Upload_Grades
     const existingUpload = await getOne('SELECT id, file_name, folder FROM "upload_grades" WHERE course_id = $1 AND doctor_id = $2', [course_id, doctor_id]);
 
+    // 5. Update Grade table directly for immediate reflection (Real-time sync)
+    const semester = await getOne('SELECT id FROM "semesters" ORDER BY start_date DESC LIMIT 1');
+    if (semester) {
+      for (const g of grades) {
+        const checkRes = await runQuery(
+          'SELECT id FROM "grade" WHERE student_id = $1 AND course_id = $2 AND semester_id = $3',
+          [g.id, course_id, semester.id]
+        );
+        
+        if (checkRes.rowCount > 0) {
+          await runQuery(
+            'UPDATE "grade" SET mid_grades = $1, final_grades = $2, sup_grades = $3, letter_grades = $4 WHERE id = $5',
+            [g.mid_grades || 0, g.final_grades || 0, g.sup_grades || 0, g.letter_grades || '', checkRes.rows[0].id]
+          );
+        } else {
+          await runQuery(
+            'INSERT INTO "grade" (student_id, course_id, semester_id, mid_grades, final_grades, sup_grades, letter_grades) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+            [g.id, course_id, semester.id, g.mid_grades || 0, g.final_grades || 0, g.sup_grades || 0, g.letter_grades || '']
+          );
+        }
+      }
+    }
+
     if (existingUpload) {
       // Overwrite the existing file
-      const existingFilePath = path.join(path.resolve(__dirname, '../../Front/public', existingUpload.folder), existingUpload.file_name);
+      const gradesDir = getGradesDir();
+      const existingFilePath = path.join(gradesDir, existingUpload.file_name);
       fs.writeFileSync(existingFilePath, csvContent);
 
       // Update the record Status to 'Pending'
       await runQuery('UPDATE "upload_grades" SET status = $1, upload_date = NOW() WHERE id = $2', ['Pending', existingUpload.id]);
       
-      res.status(200).json({ status: 'success', message: 'Grades file updated and sent to control for review.' });
+      res.status(200).json({ status: 'success', message: 'Grades updated successfully and reflected in student portals.' });
     } else {
       // Create new file and record
       const fileName = `grades_${course_id}_${Date.now()}.csv`;
-      const folder = 'grades';
-      const frontPublicPath = path.resolve(__dirname, '../../Front/public', folder);
-      const filePath = path.join(frontPublicPath, fileName);
-
-      if (!fs.existsSync(frontPublicPath)) {
-        fs.mkdirSync(frontPublicPath, { recursive: true });
-      }
+      const folder = GRADES_FOLDER;
+      const gradesDir = getGradesDir();
+      const filePath = path.join(gradesDir, fileName);
 
       fs.writeFileSync(filePath, csvContent);
+      try {
+        const frontMirror = path.resolve(__dirname, '../../front/public', folder, fileName);
+        fs.mkdirSync(path.dirname(frontMirror), { recursive: true });
+        fs.writeFileSync(frontMirror, csvContent);
+      } catch (_) { /* optional local mirror */ }
 
       const query = `
         INSERT INTO "upload_grades" (course_id, doctor_id, control_id, spec_id, file_name, folder, year_level, status, upload_date)
@@ -221,7 +264,7 @@ router.post('/submit', async (req, res) => {
       ];
       await runQuery(query, params);
 
-      res.status(201).json({ status: 'success', message: 'Grades submitted and CSV generated.' });
+      res.status(201).json({ status: 'success', message: 'Grades submitted and reflected in student portals.' });
     }
   } catch (error) {
     console.error('Error submitting grades:', error);

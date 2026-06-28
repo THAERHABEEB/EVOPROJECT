@@ -29,10 +29,16 @@ export default function StudentPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const [isDesktop, setIsDesktop] = useState(true)
-  const [showInstructions, setShowInstructions] = useState(false)
 
   const fetchStudentInfo = async () => {
     try {
+      const role = localStorage.getItem('userRole')
+      if (role !== 'student') {
+        console.error('Unauthorized access to student page')
+        router.push('/login')
+        return
+      }
+
       const userId = localStorage.getItem('userId')
       if (!userId) {
         console.error('No userId found in localStorage')
@@ -43,23 +49,15 @@ export default function StudentPage() {
       const res = await api.students.getByUserId(userId)
       if (res.status === 'success' && res.data) {
         const data = res.data
-        let photoUrl = data.photo || '/Pics/student.jpg';
-        if (photoUrl && !photoUrl.startsWith('http') && !photoUrl.startsWith('/')) {
-          photoUrl = '/' + photoUrl;
-        }
+        console.log('Student record fetched:', data)
         setStudentInfo({
           name: data.name,
           specialty: `${data.department || ''}${data.year_level ? ` - Year ${data.year_level}` : ''}`,
           studentId: data.id,
           phone: data.phone,
           address: data.address,
-          image: photoUrl
+          image: data.photo || 'Pics/student.jpg'
         })
-        // If specialization is not set, send student to selection page (first-time only)
-        if (!data.department) {
-          router.push('/student-page/select-specialization')
-          return
-        }
       }
     } catch (error) {
       console.error('Error fetching student info:', error)
@@ -69,23 +67,26 @@ export default function StudentPage() {
   }
 
   useEffect(() => {
-    setIsClient(true)
-    const handleResize = () => setIsDesktop(window.innerWidth > 992)
-    handleResize()
-    window.addEventListener('resize', handleResize)
-
-    if (!localStorage.getItem('studentInstructionsViewed')) {
-      setShowInstructions(true)
-    }
-
     fetchStudentInfo()
-    return () => window.removeEventListener('resize', handleResize)
+    setIsClient(true)
   }, [])
 
-  const closeInstructions = () => {
-    localStorage.setItem('studentInstructionsViewed', 'true')
-    setShowInstructions(false)
-  }
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768)
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(true)
+      } else {
+        setSidebarOpen(false)
+      }
+    }
+
+    // Set initial state on mount
+    handleResize()
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
@@ -114,15 +115,15 @@ export default function StudentPage() {
       case 'grades':
         return <GradesComponent studentId={studentInfo?.studentId} />
       case 'lectures':
-        return <LecturesComponent />
+        return <LecturesComponent studentId={studentInfo?.studentId} />
       case 'activities':
-        return <ActivitiesComponent />
+        return <ActivitiesComponent studentId={studentInfo?.studentId} />
       case 'statistics':
-        return <StatisticsComponent />
+        return <StatisticsComponent studentId={studentInfo?.studentId} />
       case 'assignments':
-        return <AssignmentsComponent />
+        return <AssignmentsComponent studentId={studentInfo?.studentId} />
       case 'roadmap':
-        return <RoadmapComponent />
+        return <RoadmapComponent studentId={studentInfo?.studentId} />
       case 'payments':
         return <PaymentsComponent />
       default:
@@ -132,45 +133,6 @@ export default function StudentPage() {
 
   return (
     <>
-      {showInstructions && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(8px)', animation: 'fadeIn 0.5s ease'
-        }}>
-          <div style={{
-            background: '#1a1a2e', padding: '40px 30px', borderRadius: '15px',
-            border: '1px solid rgba(255,255,255,0.1)', maxWidth: '500px', width: '90%',
-            color: '#fff', boxShadow: '0 20px 50px rgba(0,0,0,0.7)', textAlign: 'center',
-            position: 'relative'
-          }}>
-            <h2 style={{ marginBottom: '15px', color: '#4facfe', fontSize: '24px' }}>Welcome to Student Portal</h2>
-            <p style={{ lineHeight: '1.6', marginBottom: '25px', color: '#ccc' }}>Here is a quick overview of your navigation bar:</p>
-            <ul style={{ listStyleType: 'none', lineHeight: '2.0', marginBottom: '30px', textAlign: 'left', paddingLeft: '10px', color: '#e0e0e0', fontSize: '16px' }}>
-              <li>➔ <strong>Grades:</strong> Track your academic performance.</li>
-              <li>➔ <strong>Lectures:</strong> Access your course materials and videos.</li>
-              <li>➔ <strong>Activities:</strong> Participate in student events and tasks.</li>
-              <li>➔ <strong>Statistics:</strong> View detailed charts of your progress.</li>
-              <li>➔ <strong>Assignments:</strong> Submit and manage your coursework.</li>
-              <li>➔ <strong>Roadmap:</strong> Follow your academic timeline.</li>
-              <li>➔ <strong>Payments:</strong> Manage your tuition and fees.</li>
-            </ul>
-            <button 
-              onClick={closeInstructions}
-              style={{
-                width: '100%', padding: '14px', background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#fff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(0)' }}
-            >
-              Skip Tutorial
-            </button>
-          </div>
-        </div>
-      )}
       <Header
         onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         showMenuButton={true}
@@ -198,22 +160,17 @@ export default function StudentPage() {
           transition: !isDesktop ? 'transform 0.3s ease' : 'none',
           borderRight: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <div
-            className={`profile${activeTab === 'profile' ? ' profile--active' : ''}`}
+            <div className={`profile${activeTab === 'profile' ? ' profile--active' : ''}`}
             onClick={() => {
               setActiveTab('profile')
               if (!isDesktop) setSidebarOpen(false)
             }}
             title="View full profile"
           >
-            <img 
-              src={studentInfo?.image || '/Pics/student.jpg'} 
-              alt="Student" 
-              onError={(e) => { e.target.onerror = null; e.target.src = '/Pics/student.jpg'; }}
-            />
+            <img src={studentInfo?.image || 'Pics/student.jpg'} alt="Student" />
             <div>
-              <strong>{studentInfo?.name || 'Abdulrahman Reda Kamel'}</strong><br />
-              <small>{studentInfo?.specialty || 'Data Science - Year 2'}</small>
+              <strong>{studentInfo?.name || 'Loading profile...'}</strong><br />
+              <small>{studentInfo?.specialty || 'Academic Status'}</small>
             </div>
           </div>
 
@@ -272,13 +229,7 @@ export default function StudentPage() {
           width: '100%',
           minHeight: '100%'
         }}>
-          {isLoading ? (
-            <div className="alert alert-info">Loading data...</div>
-          ) : (
-            <>
-              {renderComponent()}
-            </>
-          )}
+          {!isLoading && renderComponent()}
         </div>
       </div>
 
@@ -330,7 +281,9 @@ export default function StudentPage() {
             margin-right: -6px !important;
           }
 
-          .main-content [class*='col-'] {
+          .main-content .col-sm-12,
+          .main-content .col-md-6,
+          .main-content .col-lg-4 {
             padding-left: 6px !important;
             padding-right: 6px !important;
           }
@@ -343,7 +296,7 @@ export default function StudentPage() {
         }
       `}</style>
 
-      <CircularMenu />
+      <CircularMenu loading={isLoading} />
     </>
   )
 }

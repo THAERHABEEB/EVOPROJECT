@@ -63,9 +63,9 @@ export default function ControlPage() {
       const record = response.data[0] // Take the most recent/first one
       setCurrentRecord(record)
 
-      // 2. Fetch CSV file from public directory
-      // Path format: /${folder}/${file_name}
-      const filePath = `/${record.folder}/${record.file_name}`
+      // 2. Fetch CSV file — backend uploads first, then frontend public (local dev)
+      const apiRoot = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
+      const filePath = `${apiRoot}/uploads/${record.folder}/${record.file_name}`
       setUploadStatus(`Loading file: ${record.file_name}...`)
 
       const fileResponse = await fetch(filePath)

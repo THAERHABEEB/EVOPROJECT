@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LiveDotIcon } from '@/app/components/Icons'
-import { api } from '@/lib/api'
+import api from '@/lib/api'
 
 /* ─── shared dropdown style ─────────────────────────────────────────────── */
 const selectStyle = {
@@ -67,56 +67,53 @@ const VideoThumbnail = ({ week }) => (
   </div>
 )
 
-export default function LecturesComponent() {
+export default function LecturesComponent({ studentId }) {
+  const router = useRouter()
   const [liveLectures, setLiveLectures]       = useState([])
   const [recordedLectures, setRecordedLectures] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]                 = useState(true)
   const [searchQuery, setSearchQuery]         = useState('')
   const [selectedSubject, setSelectedSubject] = useState('All')
   const [selectedWeek, setSelectedWeek]       = useState('All')
-  const router = useRouter()
 
-  useEffect(() => {
-    fetchLectures()
-  }, [])
+  useEffect(() => { 
+    if (studentId) fetchLectures() 
+  }, [studentId])
 
   const fetchLectures = async () => {
     try {
-      const studentId = localStorage.getItem('studentId') || localStorage.getItem('userId');
-      if (studentId) {
-        const res = await api.lectures.getByStudentId(studentId);
-        if (res.status === 'success' && res.data) {
-           const live = [];
-           const recorded = [];
-           res.data.forEach(item => {
-             const lectureObj = {
-               id: item.id,
-               title: item.name || 'Untitled Lecture',
-               instructor: item.doctor_name || `Dr. #${item.doctor_id || ''}`,
-               subject: item.course_name || 'General',
-               time: item.start_time || '10:00 AM',
-               uploadDate: item.start_time ? new Date(item.start_time).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-               duration: item.duration || '1h 30m',
-               week: `Week ${item.week || 1}`,
-               image: 'Pics/2.jpg',
-               liveUrl: item.live_url
-             };
-             if (item.status === 'live') live.push(lectureObj);
-             else recorded.push(lectureObj);
-           });
-           setLiveLectures(live);
-           setRecordedLectures(recorded);
-        }
+      setLoading(true)
+      // Mock live lectures for now
+      setLiveLectures([
+        { id: 1, title: 'Mechatronics Systems', instructor: 'Dr. Sherif Ibrahim', image: 'Pics/1.jpg', time: '2:00 PM' },
+      ])
+      
+      const res = await api.students.getRecordedLectures(studentId)
+      if (res.status === 'success' && res.data) {
+        const mappedLectures = res.data.map((item, idx) => ({
+          id: item.id,
+          subject: item.subject,
+          week: `Lec ${idx + 1}`, // Generate a label based on index or use real week if exists
+          title: item.title,
+          instructor: item.instructor,
+          duration: item.duration, // this is actually size in MB right now based on our previous mapping
+          uploadDate: new Date().toLocaleDateString(), // we don't have this in DB yet
+          url: item.url
+        }))
+        setRecordedLectures(mappedLectures)
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error fetching lectures:', err)
     } finally {
       setLoading(false)
     }
   }
 
   const handleEnterLecture   = (id) => router.push(`/student-page/live-lecture/${id}`)
-  const handleWatchRecorded  = (id) => alert(`Playing recorded lecture ${id}`)
+  const handleWatchRecorded  = (url) => {
+    if (url) window.open(url, '_blank')
+    else alert('Video URL not found.')
+  }
 
   /* ── derived filter options ── */
   const subjects = ['All', ...new Set(recordedLectures.map(l => l.subject))]
@@ -343,7 +340,7 @@ export default function LecturesComponent() {
                     </div>
 
                     <button
-                      onClick={() => handleWatchRecorded(lecture.id)}
+                      onClick={() => handleWatchRecorded(lecture.url)}
                       style={{
                         marginTop: '14px',
                         width: '100%',

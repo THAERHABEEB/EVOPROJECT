@@ -31,7 +31,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET grades for a specific student
+// GET grades for a specific student (shows courses that have grade records)
 router.get('/student/:studentId', async (req, res) => {
   try {
     const query = `
@@ -41,7 +41,7 @@ router.get('/student/:studentId', async (req, res) => {
         g.id, g.sup_grades, g.mid_grades, g.final_grades, g.letter_grades,
         g.course_id
       FROM "grade" g
-      LEFT JOIN "course" c ON g.course_id = c.id
+      JOIN "course" c ON g.course_id = c.id
       WHERE g.student_id = $1
     `;
     const data = await getAll(query, [req.params.studentId]);

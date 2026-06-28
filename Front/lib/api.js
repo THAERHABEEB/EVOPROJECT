@@ -99,6 +99,10 @@ export const api = {
   doctors: {
     ...createResource('doctor'),
     getCourses: (id) => request(`/doctor/${id}/courses`),
+    uploadVideo: (id, data) => request(`/doctor/${id}/upload-video`, {
+      method: 'POST',
+      body: data,
+    }),
   },
   enrollments: createResource('enrollments'),
   faq: createResource('faq'),
@@ -113,10 +117,7 @@ export const api = {
     getByStudentId: (studentId) => request(`/lecture/student/${studentId}`),
   },
   lectureMaterials: createResource('lecture_materials'),
-  library: createResource('library'),
   live: createResource('live'),
-  messages: createResource('messages'),
-  news: createResource('news'),
   requestTypes: createResource('request_type'),
   semesters: createResource('semesters'),
   specializations: createResource('specialization'),
@@ -127,6 +128,8 @@ export const api = {
     getByUserId: (userId) => request(`/students/user/${userId}`),
     getStatistics: (id) => request(`/students/${id}/statistics`),
     getActivities: (id) => request(`/students/${id}/activities`),
+    getRoadmap: (id) => request(`/students/${id}/roadmap`),
+    getRecordedLectures: (id) => request(`/students/${id}/recorded-lectures`),
   },
   // Helper to update specialization specifically
   studentsSpecialization: {
@@ -144,7 +147,16 @@ export const api = {
     get: () => request('/tabels'),
   },
   
+  activities: {
+    ...createResource('activities'),
+    getStudentActivities: (studentId) => request(`/activities/student/${studentId}`),
+    join: (studentId, activityId) => request('/activities/join', {
+      method: 'POST',
+      body: { student_id: studentId, activity_id: activityId },
+    }),
+  },
   health: () => request('/health', { method: 'GET' }),
+  request,
 };
 
 export default api;

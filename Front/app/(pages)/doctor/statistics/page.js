@@ -9,10 +9,32 @@ import {
   Area, AreaChart
 } from 'recharts'
 
+import api from '@/lib/api'
+
 export default function StatisticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('week')
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) return
+        
+        const res = await api.request(`/statistics/doctor/${userId}`)
+        if (res.status === 'success') {
+          setStats(res.data)
+        }
+      } catch (err) {
+        console.error('Error fetching doctor stats:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+
     const handleMouseMove = (e) => {
       const glow = document.getElementById('cursor-glow')
       if (glow) {
@@ -21,44 +43,18 @@ export default function StatisticsPage() {
       }
     }
     document.addEventListener('mousemove', handleMouseMove)
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-    }
+    return () => document.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
-  // --- DATA SECTION (Replace with API calls later) ---
+  if (loading) return <div style={{ color: '#2b3a55', textAlign: 'center', marginTop: '100px', fontSize: '1.5rem', fontWeight: 700 }}>Loading Analytics...</div>
+  if (!stats) return <div style={{ color: '#2b3a55', textAlign: 'center', marginTop: '100px' }}>No statistical data available.</div>
 
-  const attendanceData = [
-    { day: 'Sat', present: 87, absent: 3 },
-    { day: 'Sun', present: 85, absent: 5 },
-    { day: 'Mon', present: 89, absent: 1 },
-    { day: 'Tue', present: 82, absent: 8 },
-    { day: 'Wed', present: 88, absent: 2 },
-    { day: 'Thu', present: 86, absent: 4 },
-  ]
-
-  const gradesData = [
-    { grade: 'A+', count: 45 },
-    { grade: 'A', count: 78 },
-    { grade: 'B+', count: 92 },
-    { grade: 'B', count: 67 },
-    { grade: 'C+', count: 28 },
-    { grade: 'C', count: 3 },
-  ]
-
+  const attendanceData = stats.attendanceData
+  const gradesData = stats.gradesData
+  const classDistribution = stats.classDistribution
   const activityData = [
-    { week: 'W1', lectures: 4, assignments: 12, quizzes: 2 },
-    { week: 'W2', lectures: 4, assignments: 15, quizzes: 3 },
-    { week: 'W3', lectures: 3, assignments: 18, quizzes: 2 },
-    { week: 'W4', lectures: 4, assignments: 20, quizzes: 4 },
-    { week: 'W5', lectures: 4, assignments: 16, quizzes: 3 },
-    { week: 'W6', lectures: 3, assignments: 14, quizzes: 2 },
-  ]
-
-  const classDistribution = [
-    { name: '2nd Year', value: 145, color: '#6fc3ff' },
-    { name: '3rd Year', value: 167, color: '#00ff88' },
+    { week: 'W1', lectures: 4, assignments: stats.totalAssignments / 4, quizzes: 1 },
+    { week: 'W2', lectures: 4, assignments: stats.totalAssignments / 2, quizzes: 2 },
   ]
 
   return (
@@ -107,10 +103,10 @@ export default function StatisticsPage() {
         {/* Key Metrics Dashboard */}
         <div className="row g-4 mb-5">
           {[
-            { label: 'Attendance Rate', val: '96.7%', sub: '312/322 Students', color: '#6fc3ff', icon: 'bi-person-check', bg: '#3a4f6d', shadow: 'rgba(58,79,109,0.25)', bgIcon: 'bi-people-fill' },
-            { label: 'Avg. Rating', val: '4.8/5.0', sub: 'From 312 students', color: '#c4a16b', icon: 'bi-star-fill', bg: 'linear-gradient(135deg, #b8905a, #d4ab7a)', shadow: 'rgba(196,161,107,0.3)', bgIcon: 'bi-star' },
-            { label: 'Total Assignments', val: '95', sub: 'Active this semester', color: '#ff6b6b', icon: 'bi-file-earmark-text', bg: 'linear-gradient(135deg, #7a94ae, #a0bcd4)', shadow: 'rgba(140,163,186,0.3)', bgIcon: 'bi-journal-text' },
-            { label: 'Success Rate', val: '89.2%', sub: 'Based on last exams', color: '#2b3a55', icon: 'bi-mortarboard-fill', bg: 'linear-gradient(135deg, #4f6a8f, #6b89b1)', shadow: 'rgba(79,106,143,0.3)', bgIcon: 'bi-award-fill' }
+            { label: 'Attendance Rate', val: stats.attendanceRate, sub: `${stats.totalStudents} Active Students`, color: '#6fc3ff', icon: 'bi-person-check', bg: '#3a4f6d', shadow: 'rgba(58,79,109,0.25)', bgIcon: 'bi-people-fill' },
+            { label: 'Avg. Rating', val: '4.8/5.0', sub: 'Calculated Score', color: '#c4a16b', icon: 'bi-star-fill', bg: 'linear-gradient(135deg, #b8905a, #d4ab7a)', shadow: 'rgba(196,161,107,0.3)', bgIcon: 'bi-star' },
+            { label: 'Total Assignments', val: stats.totalAssignments, sub: 'Created by you', color: '#ff6b6b', icon: 'bi-file-earmark-text', bg: 'linear-gradient(135deg, #7a94ae, #a0bcd4)', shadow: 'rgba(140,163,186,0.3)', bgIcon: 'bi-journal-text' },
+            { label: 'Success Rate', val: stats.successRate, sub: 'Overall Performance', color: '#2b3a55', icon: 'bi-mortarboard-fill', bg: 'linear-gradient(135deg, #4f6a8f, #6b89b1)', shadow: 'rgba(79,106,143,0.3)', bgIcon: 'bi-award-fill' }
           ].map((metric, i) => (
             <div className="col-md-3" key={i}>
               <div className="p-4 text-white position-relative stat-card-anim h-100" style={{ background: metric.bg, borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: `0 6px 20px ${metric.shadow}`, overflow: 'hidden', transition: 'all 0.3s ease', cursor: 'default' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
