@@ -23,29 +23,41 @@ export default function RoadmapComponent({ studentId }) {
 
         const formattedTerms = res.data.map((plan, index) => {
           const coursesData = typeof plan.model === 'string' ? JSON.parse(plan.model) : plan.model;
+          const termStatus = plan.term_status || 'future';
 
           const trackedCourses = coursesData.map(c => {
-            // Find if there is tracking data for this specific course by name
             const tracking = progressMap[c.name] || { progress: 0, status: 'pending' };
+            let status = tracking.status;
+            let progress = tracking.progress;
+
+            if (termStatus === 'future') {
+              status = 'pending';
+              progress = 0;
+            } else if (termStatus === 'past' && status === 'pending') {
+              status = 'completed';
+              progress = 100;
+            }
 
             return {
               id: c.id,
               name: c.name,
               code: c.id,
               credits: 3,
-              status: tracking.status,
-              progress: tracking.progress
+              status,
+              progress
             };
           });
 
           return {
             id: plan.id,
             termName: plan.year_name,
-            termNumber: index + 1,
+            termNumber: plan.term_number || index + 1,
+            termStatus,
             courses: trackedCourses
           };
         });
         setTerms(formattedTerms);
+        setCurrentTerm(res.current_term_number || 1);
       }
     } catch (err) {
       console.error('Error:', err)
@@ -92,6 +104,8 @@ export default function RoadmapComponent({ studentId }) {
 
     if (isSpecial) {
       nodeColor = node.id === 'start' ? '#ff9800' : '#f44336'
+    } else if (node.termStatus === 'current') {
+      nodeColor = '#d29505'
     } else if (node.courses && node.courses.length > 0) {
       completedCourses = node.courses.filter(c => c.status === 'completed').length
       progressPercentage = Math.round((completedCourses / node.courses.length) * 100)

@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LiveDotIcon } from '@/app/components/Icons'
@@ -83,25 +85,59 @@ export default function LecturesComponent({ studentId }) {
   const fetchLectures = async () => {
     try {
       setLoading(true)
-      // Mock live lectures for now
       setLiveLectures([
         { id: 1, title: 'Mechatronics Systems', instructor: 'Dr. Sherif Ibrahim', image: 'Pics/1.jpg', time: '2:00 PM' },
       ])
-      
-      const res = await api.students.getRecordedLectures(studentId)
-      if (res.status === 'success' && res.data) {
-        const mappedLectures = res.data.map((item, idx) => ({
-          id: item.id,
-          subject: item.subject,
-          week: `Lec ${idx + 1}`, // Generate a label based on index or use real week if exists
-          title: item.title,
-          instructor: item.instructor,
-          duration: item.duration, // this is actually size in MB right now based on our previous mapping
-          uploadDate: new Date().toLocaleDateString(), // we don't have this in DB yet
-          url: item.url
-        }))
-        setRecordedLectures(mappedLectures)
+
+      let lectures = []
+      try {
+        const res = await api.students.getRecordedLectures(studentId)
+        if (res.status === 'success' && res.data) lectures = res.data
+      } catch (err) {
+        console.warn('Recorded lectures API failed, trying enrollments fallback:', err)
       }
+
+      if (lectures.length === 0) {
+        const fallback = await api.lectures.getByStudentId(studentId)
+        if (fallback.status === 'success' && fallback.data) {
+          lectures = fallback.data
+            .filter(l => l.status === 'Recorded')
+            .map(l => ({
+              id: l.id,
+              subject: l.course_name,
+              title: l.name,
+              instructor: 'Instructor',
+              duration: 'N/A',
+              url: l.live_url,
+              lecture_name: l.name,
+              created_at: l.created_at,
+            }))
+        }
+      }
+
+      const weekMap = {}
+      const mappedLectures = lectures.map((item, idx) => {
+        const subject = item.subject || 'General'
+        weekMap[subject] = (weekMap[subject] || 0) + 1
+        const weekLabel = item.lecture_name
+          ? item.lecture_name.replace(/^Week\s*/i, 'Week ')
+          : `Week ${weekMap[subject]}`
+
+        return {
+          id: item.id,
+          subject,
+          week: weekLabel,
+          title: item.title || item.lecture_name || 'Untitled Lecture',
+          instructor: item.instructor || 'Instructor',
+          duration: item.duration ? `${item.duration}` : 'N/A',
+          uploadDate: item.created_at
+            ? new Date(item.created_at).toLocaleDateString()
+            : new Date().toLocaleDateString(),
+          url: item.url
+        }
+      })
+
+      setRecordedLectures(mappedLectures)
     } catch (err) {
       console.error('Error fetching lectures:', err)
     } finally {
@@ -200,6 +236,38 @@ export default function LecturesComponent({ studentId }) {
           }}>
             <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
 
+              {/* Week Dropdown */}
+              <div style={{ position: 'relative', flex: '1 1 140px', minWidth: '120px' }}>
+                <select
+                  value={selectedWeek}
+                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  style={selectStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#c19a6b'}
+                  onBlur={(e)  => e.target.style.borderColor = '#6fc3ff'}
+                >
+                  {weeks.map(w => <option key={w} value={w} style={{ background: '#1a1a3e' }}>{w === 'All' ? '🗓️ All Weeks' : w}</option>)}
+                </select>
+                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                  <ChevronIcon />
+                </span>
+              </div>
+
+              {/* Subject Dropdown */}
+              <div style={{ position: 'relative', flex: '1 1 160px', minWidth: '140px' }}>
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  style={selectStyle}
+                  onFocus={(e) => e.target.style.borderColor = '#c19a6b'}
+                  onBlur={(e)  => e.target.style.borderColor = '#6fc3ff'}
+                >
+                  {subjects.map(s => <option key={s} value={s} style={{ background: '#1a1a3e' }}>{s === 'All' ? '📚 All Subjects' : s}</option>)}
+                </select>
+                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                  <ChevronIcon />
+                </span>
+              </div>
+
               {/* Search Input */}
               <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
                 <span style={{
@@ -223,38 +291,6 @@ export default function LecturesComponent({ studentId }) {
                   onFocus={(e)  => e.target.style.borderColor = '#c19a6b'}
                   onBlur={(e)   => e.target.style.borderColor = '#6fc3ff'}
                 />
-              </div>
-
-              {/* Subject Dropdown */}
-              <div style={{ position: 'relative', flex: '1 1 160px', minWidth: '140px' }}>
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  style={selectStyle}
-                  onFocus={(e) => e.target.style.borderColor = '#c19a6b'}
-                  onBlur={(e)  => e.target.style.borderColor = '#6fc3ff'}
-                >
-                  {subjects.map(s => <option key={s} value={s} style={{ background: '#1a1a3e' }}>{s === 'All' ? '📚 All Subjects' : s}</option>)}
-                </select>
-                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                  <ChevronIcon />
-                </span>
-              </div>
-
-              {/* Week Dropdown */}
-              <div style={{ position: 'relative', flex: '1 1 140px', minWidth: '120px' }}>
-                <select
-                  value={selectedWeek}
-                  onChange={(e) => setSelectedWeek(e.target.value)}
-                  style={selectStyle}
-                  onFocus={(e) => e.target.style.borderColor = '#c19a6b'}
-                  onBlur={(e)  => e.target.style.borderColor = '#6fc3ff'}
-                >
-                  {weeks.map(w => <option key={w} value={w} style={{ background: '#1a1a3e' }}>{w === 'All' ? '🗓️ All Weeks' : w}</option>)}
-                </select>
-                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                  <ChevronIcon />
-                </span>
               </div>
 
               {/* Clear button — shown only when a filter is active */}

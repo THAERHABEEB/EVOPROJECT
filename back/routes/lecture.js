@@ -17,20 +17,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET a single record by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const data = await getOne('SELECT * FROM "lecture" WHERE id = $1', [req.params.id]);
-    if (!data) {
-      return res.status(404).json({ status: 'error', error: 'Record not found' });
-    }
-    res.json({ status: 'success', data });
-  } catch (error) {
-    console.error('Error fetching data from lecture:', error);
-    res.status(500).json({ status: 'error', error: 'Database error' });
-  }
-});
-
 // GET lectures by student ID (via enrollments)
 router.get('/student/:studentId', async (req, res) => {
   try {
@@ -45,6 +31,53 @@ router.get('/student/:studentId', async (req, res) => {
     res.json({ status: 'success', data });
   } catch (error) {
     console.error('Error fetching lectures for student:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// GET all lectures for a specific doctor with their materials
+router.get('/doctor/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const doctorRecord = await getOne('SELECT id FROM "doctor" WHERE user_id = $1', [userId]);
+    if (!doctorRecord) {
+      return res.status(404).json({ status: 'error', error: 'Doctor not found' });
+    }
+    const doctorId = doctorRecord.id;
+
+    const query = `
+      SELECT
+        l.id,
+        l.name as title,
+        l.status,
+        c.name as course_name,
+        lm.folder as url,
+        lm.file_size as size,
+        l.created_at
+      FROM "lecture" l
+      JOIN "course" c ON l.course_id = c.id
+      LEFT JOIN "lecture_materials" lm ON l.id = lm.lecture_id
+      WHERE l.doctor_id = $1
+      ORDER BY l.created_at DESC
+    `;
+    const data = await getAll(query, [doctorId]);
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching doctor lectures:', error);
+    res.status(500).json({ status: 'error', error: 'Database error' });
+  }
+});
+
+// GET a single record by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const data = await getOne('SELECT * FROM "lecture" WHERE id = $1', [req.params.id]);
+    if (!data) {
+      return res.status(404).json({ status: 'error', error: 'Record not found' });
+    }
+    res.json({ status: 'success', data });
+  } catch (error) {
+    console.error('Error fetching data from lecture:', error);
     res.status(500).json({ status: 'error', error: 'Database error' });
   }
 });

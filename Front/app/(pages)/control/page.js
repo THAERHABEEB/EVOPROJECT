@@ -1,12 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import CircularMenu from '@/app/components/CircularMenu'
 import api from '@/lib/api'
 import { departments, getYearsByDepartment, getSubjectsByYear } from '@/lib/roadmapData'
 
 export default function ControlPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole')
+    if (role !== 'control') {
+      router.push('/login')
+    }
+  }, [router])
 
   const [department, setDepartment] = useState(departments[0]?.name || '')
   const [year, setYear] = useState('')

@@ -63,33 +63,30 @@ router.get('/user/:userId', async (req, res) => {
 router.get('/:id/roadmap', async (req, res) => {
   try {
     const studentId = req.params.id;
-    // 1. Get student's department
     const student = await getOne('SELECT department, current_semester, year_level FROM "students" WHERE id = $1', [studentId]);
     if (!student || !student.department) {
       return res.status(404).json({ status: 'error', error: 'Student or department not found' });
     }
 
-    // 2. Find specialization matching department name (Fuzzy Match)
     const spec = await getOne('SELECT id FROM "specialization" WHERE name ILIKE $1 OR $2 ILIKE \'%\' || name || \'%\'', [`%${student.department}%`, student.department]);
     if (!spec) {
       return res.status(404).json({ status: 'error', error: 'Specialization not found for department: ' + student.department });
     }
 
-    // 3. Fetch all study plans for this specialization
-    // We order them by year_name, but we might need a better sorting in JS later
     const plans = await getAll('SELECT id, year_name, model FROM "study_plan" WHERE spec_id = $1 ORDER BY year_name ASC', [spec.id]);
-    
-    // Sort plans properly: Year 1 before Year 2, Semester 1 before Semester 2
-    plans.sort((a, b) => {
-        const getVal = (s) => {
-            const year = parseInt(s.match(/Year (\d+)/)?.[1] || 0);
-            const sem = parseInt(s.match(/Semester (\d+)/)?.[1] || 0);
-            return year * 10 + sem;
-        };
-        return getVal(a.year_name) - getVal(b.year_name);
-    });
 
-    // 4. Fetch lecture counts per course to determine progress
+    const getTermValue = (yearName) => {
+      const year = parseInt(String(yearName).match(/Year\s*(\d+)/i)?.[1] || 0);
+      const sem = parseInt(String(yearName).match(/Semester\s*(\d+)/i)?.[1] || 0);
+      return year * 10 + sem;
+    };
+
+    plans.sort((a, b) => getTermValue(a.year_name) - getTermValue(b.year_name));
+
+    const studentYear = parseInt(student.year_level) || 1;
+    const studentSem = parseInt(String(student.current_semester || 'Semester 1').match(/\d+/)?.[0] || 1);
+    const studentTermValue = studentYear * 10 + studentSem;
+
     const lectureCounts = await getAll(`
       SELECT c.name as course_name, COUNT(l.id) as lecture_count
       FROM "course" c
@@ -103,7 +100,7 @@ router.get('/:id/roadmap', async (req, res) => {
         const maxLectures = 12;
         let progress = Math.round((parseInt(row.lecture_count) / maxLectures) * 100);
         if (progress > 100) progress = 100;
-        
+
         let status = 'pending';
         if (progress > 0 && progress < 100) status = 'in-progress';
         else if (progress === 100) status = 'completed';
@@ -112,12 +109,41 @@ router.get('/:id/roadmap', async (req, res) => {
       });
     }
 
-    res.json({ 
-      status: 'success', 
+    let currentTermNumber = 1;
+    const enrichedPlans = plans.map((plan, index) => {
+      const termValue = getTermValue(plan.year_name);
+      let termStatus = 'future';
+      if (termValue < studentTermValue) termStatus = 'past';
+      else if (termValue === studentTermValue) termStatus = 'current';
+
+      const termNumber = index + 1;
+      if (termStatus === 'current') currentTermNumber = termNumber;
+
+      return {
+        ...plan,
+        term_number: termNumber,
+        term_status: termStatus,
+        term_value: termValue,
+      };
+    });
+
+    if (!enrichedPlans.some(p => p.term_status === 'current')) {
+      const closest = enrichedPlans.reduce((best, plan) => {
+        const diff = Math.abs(plan.term_value - studentTermValue);
+        if (!best || diff < best.diff) return { plan, diff };
+        return best;
+      }, null);
+      if (closest) currentTermNumber = closest.plan.term_number;
+    }
+
+    res.json({
+      status: 'success',
       current_semester: student.current_semester,
       year_level: student.year_level,
+      current_term_number: currentTermNumber,
+      student_term_value: studentTermValue,
       course_progress: courseProgressMap,
-      data: plans 
+      data: enrichedPlans
     });
   } catch (error) {
     console.error('Error fetching roadmap:', error);
@@ -130,20 +156,22 @@ router.get('/:id/recorded-lectures', async (req, res) => {
   try {
     const studentId = req.params.id;
     const query = `
-      SELECT 
-        m.id, 
-        c.name as subject, 
-        m.name as title, 
-        d.name as instructor, 
-        m.file_size as duration, 
-        m.folder as url
+      SELECT DISTINCT
+        m.id,
+        c.name as subject,
+        m.name as title,
+        d.name as instructor,
+        m.file_size as duration,
+        m.folder as url,
+        l.name as lecture_name,
+        l.created_at
       FROM "lecture_materials" m
       JOIN "lecture" l ON m.lecture_id = l.id
       JOIN "course" c ON l.course_id = c.id
       JOIN "doctor" d ON l.doctor_id = d.id
-      JOIN "students" s ON s.id = $1
-      JOIN "specialization" sp ON s.department LIKE '%' || sp.name || '%' AND c.specialization_id = sp.id
+      JOIN "enrollments" e ON e.course_id = c.id AND e.student_id = $1
       WHERE l.status = 'Recorded'
+      ORDER BY l.created_at DESC, m.id DESC
     `;
     const lectures = await getAll(query, [studentId]);
     res.json({ status: 'success', data: lectures });
