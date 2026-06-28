@@ -12,6 +12,7 @@ export default function FAQPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [newQuestion, setNewQuestion] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [canManageFaq, setCanManageFaq] = useState(false)
   
   const initialFaqs = [
     {
@@ -57,6 +58,8 @@ export default function FAQPage() {
 
   useEffect(() => {
     setIsClient(true)
+    const role = (localStorage.getItem('userRole') || '').toLowerCase()
+    setCanManageFaq(role === 'control' || role === 'admin')
     const storedFaqs = localStorage.getItem('evo_faqs')
     if (storedFaqs) {
       setFaqs(JSON.parse(storedFaqs))
@@ -127,19 +130,21 @@ export default function FAQPage() {
       <Header title="FAQ" />
       <div id="cursor-glow"></div>
       
-      {/* Admin Toggle (For demo/testing purposes so the user can easily switch to admin view) */}
-      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 9999, marginTop: '70px' }}>
-        <button 
-          className={`btn btn-sm shadow ${isAdmin ? 'btn-danger' : 'btn-outline-light'}`}
-          onClick={() => setIsAdmin(!isAdmin)}
-          style={{
-            backdropFilter: 'blur(5px)',
-            background: isAdmin ? '#dc3545' : 'rgba(255,255,255,0.1)'
-          }}
-        >
-          {isAdmin ? '🔴 Exit Admin Mode' : '🛡️ Admin Mode'}
-        </button>
-      </div>
+      {/* Admin toggle — only for control / admin users */}
+      {canManageFaq && (
+        <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 9999, marginTop: '70px' }}>
+          <button 
+            className={`btn btn-sm shadow ${isAdmin ? 'btn-danger' : 'btn-outline-light'}`}
+            onClick={() => setIsAdmin(!isAdmin)}
+            style={{
+              backdropFilter: 'blur(5px)',
+              background: isAdmin ? '#dc3545' : 'rgba(255,255,255,0.1)'
+            }}
+          >
+            {isAdmin ? '🔴 Exit Admin Mode' : '🛡️ Admin Mode'}
+          </button>
+        </div>
+      )}
 
       <div className="container-fluid py-5" style={{ minHeight: '100vh' }}>
         <div className="row justify-content-center">
@@ -212,7 +217,7 @@ export default function FAQPage() {
                         <div key={i}>{line}</div>
                       ))}
                       
-                      {isAdmin && (
+                      {canManageFaq && isAdmin && (
                         <div className="mt-4 pt-3 text-end" style={{ borderTop: '1px dashed rgba(255,0,0,0.2)' }}>
                           <button 
                             className="btn btn-sm btn-outline-danger"
@@ -285,7 +290,7 @@ export default function FAQPage() {
             </div>
 
             {/* Admin Section for Pending Questions */}
-            {(isAdmin && pendingFaqs.length > 0) && (
+            {(canManageFaq && isAdmin && pendingFaqs.length > 0) && (
               <div className="mt-5 mb-5 p-4" style={{
                 background: 'rgba(220, 53, 69, 0.05)',
                 border: '1px solid rgba(220, 53, 69, 0.3)',
@@ -337,7 +342,7 @@ export default function FAQPage() {
             )}
 
             {/* Pending Feedback for normal users */}
-            {(!isAdmin && pendingFaqs.length > 0) && (
+            {(!canManageFaq && pendingFaqs.length > 0) && (
               <div className="mt-4 text-center">
                 <p className="text-white-50 p-3" style={{ 
                   background: 'rgba(255,255,255,0.05)', 
