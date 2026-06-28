@@ -59,7 +59,7 @@ const CircularMenu = ({ loading = false }) => {
     const totalInOrbit = orbitItems.length;
     const radius = item.orbit === 'inner' ? 70 : 140;
 
-    const angle = (indexInOrbit / (totalInOrbit - 1 || 1)) * Math.PI;
+    const angle = (indexInGroup / (totalInOrbit - 1 || 1)) * Math.PI;
 
     const x = Math.cos(angle) * radius;
     const y = -Math.sin(angle) * radius;
