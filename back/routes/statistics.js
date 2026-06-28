@@ -5,6 +5,53 @@ const authenticateToken = require('../middleware/auth.js');
 
 router.use(authenticateToken);
 
+function letterToGpaPoints(letter) {
+  const l = (letter || '').trim().toUpperCase();
+  if (['A+', 'A'].includes(l)) return 4.0;
+  if (l === 'B+') return 3.3;
+  if (l === 'B') return 3.0;
+  if (l === 'C+') return 2.3;
+  if (l === 'C') return 2.0;
+  if (l === 'D') return 1.0;
+  return 0;
+}
+
+function weekKey(dateStr) {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const start = new Date(d);
+  start.setDate(d.getDate() - d.getDay());
+  return start.toISOString().slice(0, 10);
+}
+
+async function resolveClassRanking(studentId, department, storedRanking) {
+  const trimmed = (storedRanking || '').trim();
+  if (trimmed && trimmed.toUpperCase() !== 'N/A') {
+    return trimmed;
+  }
+
+  if (!department) return 'N/A';
+
+  try {
+    const departmentRanks = await getAll(`
+      SELECT s.id AS st_id,
+        COALESCE(AVG(CAST(NULLIF(TRIM(g.final_grades::text), '') AS NUMERIC)), 0) AS avg_grade
+      FROM "students" s
+      LEFT JOIN "grade" g ON s.id = g.student_id
+      WHERE s.department = $1
+      GROUP BY s.id
+      ORDER BY avg_grade DESC
+    `, [department]);
+
+    const idx = departmentRanks.findIndex((r) => String(r.st_id) === String(studentId));
+    if (idx === -1) return 'N/A';
+    return `${idx + 1} of ${departmentRanks.length || 1}`;
+  } catch (e) {
+    console.warn('[Stats] Ranking calculation error:', e.message);
+    return trimmed || 'N/A';
+  }
+}
+
 // GET statistics for a specific student
 router.get('/student/:studentId', async (req, res) => {
   try {
@@ -15,14 +62,20 @@ router.get('/student/:studentId', async (req, res) => {
       return res.status(400).json({ status: 'error', error: 'Invalid Student ID' });
     }
 
+    const student = await getOne(
+      'SELECT id, department, class_ranking, year_level FROM "students" WHERE id = $1',
+      [studentId]
+    );
+
     let subjectGrades = [];
     let averageGrade = 0;
     let gpa = 0;
+    let gpaTrend = [];
 
     // 1. Fetch Grades (Defensive)
     try {
       const gradesQuery = `
-        SELECT g.*, c.name as subject_name, c.total_grade, c.year_level
+        SELECT g.*, c.name AS subject_name, c.total_grade, c.year_level
         FROM "grade" g
         JOIN "course" c ON g.course_id = c.id
         WHERE g.student_id = $1
@@ -31,20 +84,56 @@ router.get('/student/:studentId', async (req, res) => {
 
       let totalPoints = 0;
       let totalPossible = 0;
-      subjectGrades = grades.map(g => {
+      let totalGpaPoints = 0;
+      let gpaCount = 0;
+      const gpaTrendMap = {};
+
+      subjectGrades = grades.map((g) => {
         const score = (parseFloat(g.sup_grades) || 0) + (parseFloat(g.mid_grades) || 0) + (parseFloat(g.final_grades) || 0);
         const possible = parseFloat(g.total_grade) || 100;
+        const pct = possible > 0 ? Math.round((score / possible) * 100) : Math.round(parseFloat(g.final_grades) || 0);
         totalPoints += score;
         totalPossible += possible;
+
+        const points = letterToGpaPoints(g.letter_grades);
+        if (g.letter_grades || g.final_grades) {
+          totalGpaPoints += points;
+          gpaCount += 1;
+        }
+
+        if (g.semester_id) {
+          if (!gpaTrendMap[g.semester_id]) gpaTrendMap[g.semester_id] = { total: 0, count: 0 };
+          gpaTrendMap[g.semester_id].total += points;
+          gpaTrendMap[g.semester_id].count += 1;
+        }
+
         return {
           subject: g.subject_name || 'Unknown',
-          score: possible > 0 ? Math.round((score / possible) * 100) : 0,
-          year_level: g.year_level || 1
+          score: pct,
+          year_level: g.year_level || student?.year_level || 1,
         };
       });
 
-      averageGrade = totalPossible > 0 ? Math.round((totalPoints / totalPossible) * 100) : 0;
-      gpa = (averageGrade / 100) * 4;
+      averageGrade = totalPossible > 0
+        ? Math.round((totalPoints / totalPossible) * 100)
+        : (grades.length > 0
+          ? Math.round(grades.reduce((sum, g) => sum + (parseFloat(g.final_grades) || 0), 0) / grades.length)
+          : 0);
+
+      gpa = gpaCount > 0
+        ? totalGpaPoints / gpaCount
+        : (averageGrade / 100) * 4;
+
+      gpaTrend = Object.keys(gpaTrendMap)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((sem) => ({
+          semester: `Sem ${sem}`,
+          gpa: parseFloat((gpaTrendMap[sem].total / gpaTrendMap[sem].count).toFixed(2)),
+        }));
+
+      if (gpaTrend.length === 0 && gpa > 0) {
+        gpaTrend = [{ semester: 'Current', gpa: parseFloat(gpa.toFixed(2)) }];
+      }
     } catch (e) {
       console.warn('[Stats] Grade/Course tables error:', e.message);
     }
@@ -53,11 +142,12 @@ router.get('/student/:studentId', async (req, res) => {
     let presentCount = 0;
     let totalAttendance = 0;
     let attendanceHistory = [];
+    let attendanceTrend = [];
 
     // 2. Fetch Attendance Stats (Defensive)
     try {
       const attendanceQuery = `
-        SELECT a.*, c.name as course_name 
+        SELECT a.*, c.name AS course_name 
         FROM "attendance" a
         LEFT JOIN "lecture" l ON a.lecture_id = l.id
         LEFT JOIN "course" c ON l.course_id = c.id
@@ -65,38 +155,113 @@ router.get('/student/:studentId', async (req, res) => {
         ORDER BY a.date DESC
       `;
       attendanceRecords = await getAll(attendanceQuery, [studentId]) || [];
-      presentCount = attendanceRecords.filter(r => r.status === 'present').length;
-      totalAttendance = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 0;
+      presentCount = attendanceRecords.filter((r) => r.status === 'present').length;
+      totalAttendance = attendanceRecords.length > 0
+        ? Math.round((presentCount / attendanceRecords.length) * 100)
+        : 0;
 
-      attendanceHistory = attendanceRecords.map(r => ({
+      attendanceHistory = attendanceRecords.map((r) => ({
         date: r.date,
         course: r.course_name || 'General',
-        status: r.status
+        status: r.status,
       }));
+
+      const weekMap = {};
+      attendanceRecords.forEach((r) => {
+        const key = weekKey(r.date);
+        if (!key) return;
+        if (!weekMap[key]) weekMap[key] = { present: 0, absent: 0 };
+        if (r.status === 'present') weekMap[key].present += 1;
+        else weekMap[key].absent += 1;
+      });
+
+      attendanceTrend = Object.keys(weekMap)
+        .sort()
+        .slice(-6)
+        .map((key, i) => ({
+          week: `W${i + 1}`,
+          present: weekMap[key].present,
+          absent: weekMap[key].absent,
+        }));
+
+      if (attendanceTrend.length === 0) {
+        attendanceTrend = [{ week: 'Current', present: presentCount, absent: attendanceRecords.length - presentCount }];
+      }
     } catch (e) {
       console.warn('[Stats] Attendance table error:', e.message);
     }
 
-    // 3. Fetch Assignment Stats (Defensive)
+    // 3. Fetch Assignment / Quiz Stats (Defensive)
     let submissions = [];
+    let activityData = [];
     try {
-      const assignmentsQuery = 'SELECT score FROM "quiz_submission" WHERE student_id = $1';
+      const assignmentsQuery = `
+        SELECT score, submitted_at
+        FROM "quiz_submission"
+        WHERE student_id = $1
+        ORDER BY submitted_at ASC
+      `;
       submissions = await getAll(assignmentsQuery, [studentId]) || [];
+
+      const activityWeekMap = {};
+      submissions.forEach((s) => {
+        const key = weekKey(s.submitted_at);
+        if (!key) return;
+        if (!activityWeekMap[key]) activityWeekMap[key] = { assignments: 0, quizzes: 0 };
+        activityWeekMap[key].quizzes += 1;
+        activityWeekMap[key].assignments += 1;
+      });
+
+      try {
+        const studentActivities = await getAll(`
+          SELECT sa.registration_date
+          FROM "student_activity" sa
+          WHERE sa.student_id = $1
+          ORDER BY sa.registration_date ASC
+        `, [studentId]) || [];
+
+        studentActivities.forEach((a) => {
+          const key = weekKey(a.registration_date);
+          if (!key) return;
+          if (!activityWeekMap[key]) activityWeekMap[key] = { assignments: 0, quizzes: 0 };
+          activityWeekMap[key].assignments += 1;
+        });
+      } catch (actErr) {
+        console.warn('[Stats] Student activity table error:', actErr.message);
+      }
+
+      activityData = Object.keys(activityWeekMap)
+        .sort()
+        .slice(-6)
+        .map((key, i) => ({
+          week: `W${i + 1}`,
+          assignments: activityWeekMap[key].assignments,
+          quizzes: activityWeekMap[key].quizzes,
+        }));
+
+      if (activityData.length === 0) {
+        activityData = [{
+          week: 'Current',
+          assignments: submissions.length,
+          quizzes: submissions.length > 0 ? submissions.length : 0,
+        }];
+      }
     } catch (e) {
       console.warn('[Stats] Quiz submission table error:', e.message);
     }
-    
-    // 4. Trends
-    const gpaTrend = [{ semester: 'Current', gpa: parseFloat(gpa || 0).toFixed(2) }];
-    const attendanceTrend = [{ week: 'Current', present: presentCount, absent: attendanceRecords.length - presentCount }];
-    const activityData = [{ week: 'Current', assignments: submissions.length, quizzes: submissions.length > 0 ? 1 : 0 }];
+
+    const ranking = await resolveClassRanking(
+      studentId,
+      student?.department,
+      student?.class_ranking
+    );
 
     const assignmentStatus = submissions.length > 0 ? [
       { name: 'Submitted', value: submissions.length, color: '#6fc3ff' },
       { name: 'Pending', value: 0, color: '#f39c12' },
       { name: 'Missed', value: 0, color: '#ff6b6b' },
     ] : [
-      { name: 'No Data', value: 1, color: '#333' }
+      { name: 'No Data', value: 1, color: '#333' },
     ];
 
     res.json({
@@ -105,14 +270,15 @@ router.get('/student/:studentId', async (req, res) => {
         gpa: parseFloat(gpa || 0).toFixed(2),
         averageGrade: averageGrade || 0,
         totalAttendance: totalAttendance || 0,
-        ranking: 'N/A', 
+        ranking,
+        classRanking: student?.class_ranking || null,
         subjectGrades,
         gpaTrend,
         assignmentStatus,
         attendanceTrend,
         attendanceHistory,
-        activityData
-      }
+        activityData,
+      },
     });
 
   } catch (error) {
