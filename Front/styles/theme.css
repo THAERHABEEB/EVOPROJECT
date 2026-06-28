@@ -212,9 +212,25 @@ body {
   background: url('/Pics/BackGround.jpeg');
   background-repeat: no-repeat;
   background-size: cover;
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
   padding-bottom: 100px;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+    background-attachment: scroll;
+  }
+
+  .main-content {
+    padding: 72px 12px 24px !important;
+  }
+
+  #cursor-glow {
+    display: none;
+  }
 }
 
 /* Cursor Glow */

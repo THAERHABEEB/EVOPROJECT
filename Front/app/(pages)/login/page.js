@@ -268,8 +268,9 @@ export default function LoginPage() {
       `}</style>
 
       <div
+        className="login-wrapper"
         style={{
-          height: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',

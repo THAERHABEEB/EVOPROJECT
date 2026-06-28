@@ -132,7 +132,7 @@ export default function FAQPage() {
       
       {/* Admin toggle — only for control / admin users */}
       {canManageFaq && (
-        <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 9999, marginTop: '70px' }}>
+        <div className="position-fixed top-0 end-0 p-3 faq-admin-toggle" style={{ zIndex: 9999, marginTop: '70px' }}>
           <button 
             className={`btn btn-sm shadow ${isAdmin ? 'btn-danger' : 'btn-outline-light'}`}
             onClick={() => setIsAdmin(!isAdmin)}
@@ -146,7 +146,7 @@ export default function FAQPage() {
         </div>
       )}
 
-      <div className="container-fluid py-5" style={{ minHeight: '100vh' }}>
+      <div className="container-fluid py-5" style={{ minHeight: '100vh', paddingTop: '80px' }}>
         <div className="row justify-content-center">
           <div className="col-lg-8 col-md-10" dir="ltr">
 
@@ -255,7 +255,7 @@ export default function FAQPage() {
             }}>
               <h4 className="text-white mb-4" style={{ fontSize: '1.3rem' }}>Question not found? Ask it now</h4>
               <form onSubmit={handleAddQuestion}>
-                <div className="input-group d-flex" style={{ gap: '10px' }}>
+                <div className="input-group d-flex faq-ask-row" style={{ gap: '10px' }}>
                   <input 
                     type="text" 
                     className="form-control bg-transparent text-white shadow-none ps-3 text-end" 

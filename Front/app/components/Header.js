@@ -15,37 +15,43 @@ export default function Header({ onMenuToggle = null, showMenuButton = false, ti
       {showMenuButton && (
         <button
           onClick={onMenuToggle}
+          aria-label="Toggle menu"
           style={{
             position: 'absolute',
-            right: '20px',
-            backgroundColor: 'transparent',
-            border: 'none',
+            right: '12px',
+            backgroundColor: 'rgba(111, 195, 255, 0.12)',
+            border: '1px solid rgba(111, 195, 255, 0.35)',
+            borderRadius: '10px',
             color: '#6fc3ff',
             cursor: 'pointer',
-            zIndex: 1000,
+            zIndex: 1001,
             display: 'none',
             flexDirection: 'column',
-            gap: '4px',
-            padding: '0'
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            minWidth: '44px',
+            minHeight: '44px',
+            padding: '10px'
           }}
           className="hamburger-btn"
         >
           <span style={{
-            width: '22px',
+            width: '20px',
             height: '2.5px',
             backgroundColor: '#6fc3ff',
             borderRadius: '2px',
             transition: 'all 0.3s ease'
           }}></span>
           <span style={{
-            width: '22px',
+            width: '20px',
             height: '2.5px',
             backgroundColor: '#6fc3ff',
             borderRadius: '2px',
             transition: 'all 0.3s ease'
           }}></span>
           <span style={{
-            width: '22px',
+            width: '20px',
             height: '2.5px',
             backgroundColor: '#6fc3ff',
             borderRadius: '2px',
@@ -121,17 +127,18 @@ export default function Header({ onMenuToggle = null, showMenuButton = false, ti
 
         @media (max-width: 767px) {
           .main-header {
-            padding: 12px 15px;
+            padding: 10px 56px 10px 12px !important;
           }
 
           .header-title {
-            font-size: 16px !important;
-            letter-spacing: 1px;
+            font-size: 15px !important;
+            letter-spacing: 0.5px;
           }
 
           .main-header img {
-            height: 35px;
+            height: 32px;
             width: auto;
+            max-width: 70px;
           }
 
           .hamburger-btn {

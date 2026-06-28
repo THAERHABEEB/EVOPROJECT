@@ -142,13 +142,19 @@ export default function StudentPage() {
       />
       <div id="cursor-glow"></div>
 
-      {/* Sidebar Overlay - Mobile Only */}
-
+      {/* Sidebar overlay — mobile drawer backdrop */}
+      {!isDesktop && sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Desktop Layout */}
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 70px)', width: '100%' }}>
-        <div className="sidebar" style={{
-          width: isDesktop ? '320px' : '280px',
+        <div className={`sidebar${!isDesktop && sidebarOpen ? ' open' : ''}`} style={{
+          width: isDesktop ? '320px' : 'min(280px, 85vw)',
           position: isDesktop ? 'relative' : 'fixed',
           right: 0,
           top: isDesktop ? '0' : '70px',
@@ -158,7 +164,7 @@ export default function StudentPage() {
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          transform: !isDesktop && !sidebarOpen ? 'translateX(200%)' : 'translateX(0)',
+          transform: !isDesktop && !sidebarOpen ? 'translateX(100%)' : 'translateX(0)',
           transition: !isDesktop ? 'transform 0.3s ease' : 'none',
           borderRight: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
@@ -230,10 +236,10 @@ export default function StudentPage() {
           </button>
         </div>
 
-        <div className="main-content" style={{
+        <div className="main-content student-main-content" style={{
           flex: 1,
           overflow: 'auto',
-          padding: !isDesktop ? '15px' : '20px',
+          padding: !isDesktop ? '12px 12px 24px' : '20px',
           width: '100%',
           minHeight: '100%'
         }}>

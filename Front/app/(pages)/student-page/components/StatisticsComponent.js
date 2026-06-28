@@ -63,7 +63,7 @@ export default function StatisticsComponent({ studentId }) {
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                 transition: 'all 0.3s ease'
               }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                <h3 style={{color: '#6fc3ff', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.gpa}</h3>
+                <h3 className="stats-metric-value" style={{color: '#6fc3ff', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.gpa}</h3>
                 <p style={{color: '#ccc', marginBottom: '0', fontSize: '1.1rem', fontWeight: 500}}>Cumulative GPA</p>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function StatisticsComponent({ studentId }) {
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                 transition: 'all 0.3s ease'
               }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                <h3 style={{color: '#c4a16b', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.averageGrade}%</h3>
+                <h3 className="stats-metric-value" style={{color: '#c4a16b', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.averageGrade}%</h3>
                 <p style={{color: '#ccc', marginBottom: '0', fontSize: '1.1rem', fontWeight: 500}}>Average Grade</p>
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function StatisticsComponent({ studentId }) {
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                 transition: 'all 0.3s ease'
               }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                <h3 style={{color: '#ff6b6b', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.ranking}</h3>
+                <h3 className="stats-metric-value" style={{color: '#ff6b6b', fontSize: '2.8rem', fontWeight: 'bold', margin: '0 0 10px 0'}}>{stats.ranking}</h3>
                 <p style={{color: '#ccc', marginBottom: '0', fontSize: '1.1rem', fontWeight: 500}}>Class Ranking</p>
               </div>
             </div>

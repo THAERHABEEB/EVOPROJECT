@@ -237,7 +237,8 @@ export default function RoadmapComponent({ studentId }) {
       {loading ? (
         <div className="alert alert-info">Loading roadmap...</div>
       ) : (
-        <div style={{ width: '100%', overflowX: 'auto', height: '100%', overflowY: 'auto', paddingBottom: '40px' }} className="hide-scrollbar">
+        <div style={{ width: '100%', overflowX: 'auto', height: '100%', overflowY: 'auto', paddingBottom: '40px' }} className="hide-scrollbar roadmap-scroll">
+          <p className="roadmap-scroll-hint">← Swipe to explore your roadmap →</p>
           <style>{`
             .hide-scrollbar::-webkit-scrollbar {
               display: none;
@@ -247,7 +248,7 @@ export default function RoadmapComponent({ studentId }) {
               50% { transform: translateY(-8px); }
             }
           `}</style>
-          <div style={{ minWidth: '850px', maxWidth: '1000px', margin: '0 auto', position: 'relative', overflow: 'visible', paddingTop: '20px' }}>
+          <div className="roadmap-inner" style={{ minWidth: '850px', maxWidth: '1000px', margin: '0 auto', position: 'relative', overflow: 'visible', paddingTop: '20px' }}>
 
             {/* The 3 track lines */}
             <div style={{ position: 'absolute', top: '27px', left: '10%', right: '14%', height: '16px', background: '#444', zIndex: 0 }} />

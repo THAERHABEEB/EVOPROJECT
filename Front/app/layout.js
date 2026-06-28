@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import '../styles/font.css'
 import '../styles/theme.css'
+import '../styles/mobile.css'
 import '../styles/animations.css'
 import '../styles/carousel.css'
 import '../styles/forms.css'
